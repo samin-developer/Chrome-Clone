@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+logs/
+node_modules/
+package.json
+package-lock.json
+tests/
+jest.config.js
+test.js
+.git
+.gitignore

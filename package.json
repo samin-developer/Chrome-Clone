@@ -1,0 +1,17 @@
+{
+  "name": "chrome-clone",
+  "version": "1.0.0",
+  "description": "A Google Chrome-inspired web app with real-world API integrations.",
+  "main": "jest.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "puppeteer": "^25.2.0"
+  }
+}

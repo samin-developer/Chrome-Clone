@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chrome Clone</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=36" />
+</head>
+
+<body>
+  <div class="browser-shell">
+
+    <!-- Title bar / Tabs -->
+    <div class="titlebar">
+      <div class="tab-row">
+        <button type="button" class="new-tab-btn" onclick="openNewTab()">+</button>
+      </div>
+    </div>
+
+    <!-- MAIN BROWSER VIEW AREA -->
+    <!-- Toolbar / Omnibox -->
+    <div class="toolbar">
+      <button type="button" class="nav-btn" id="backBtn" disabled onclick="goBack()">&#8592;</button>
+      <button type="button" class="nav-btn" id="fwdBtn" disabled onclick="goFwd()">&#8594;</button>
+      <button type="button" class="nav-btn" onclick="reloadPage()">&#8635;</button>
+      <div class="omnibox-wrap">
+        <span class="lock-icon">🔒</span>
+        <input id="omnibox" class="omnibox" type="text" placeholder="Search Google or type a URL" title="Search"
+          aria-label="Search" autocomplete="off" spellcheck="false" onkeydown="handleOmniKey(event)"
+          oninput="handleOmniInput(this.value)" onfocus="showSugg()" onblur="setTimeout(hideSugg, 200)" />
+        <button type="button" id="omniClear" class="omni-clear d-none" onclick="clearOmni()">✕</button>
+        <span class="bookmark-star" id="bookmarkStar" title="Bookmark this tab">☆</span>
+        <div id="bookmarkPopup" class="chrome-panel d-none" style="position: absolute; right: 0; top: 38px; width: 320px; padding: 16px; border-radius: 8px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); background: #202124; color: #e8eaed; border: 1px solid #3c4043;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 500;">Bookmark added</h3>
+                <span style="cursor: pointer; font-size: 18px;" onclick="closeBookmarkPopup()">✕</span>
+            </div>
+            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                <div style="width: 64px; height: 64px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">G</div>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <label for="bookmarkNameInput" style="width: 60px; font-size: 13px; color: #9aa0a6;">Name</label>
+                        <input type="text" id="bookmarkNameInput" title="Bookmark name" aria-label="Bookmark name" style="flex: 1; background: #202124; border: 1px solid #8ab4f8; border-radius: 4px; padding: 6px 8px; color: #e8eaed; outline: none;">
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <label for="bookmarkFolderSelect" style="width: 60px; font-size: 13px; color: #9aa0a6;">Folder</label>
+                        <select id="bookmarkFolderSelect" title="Select bookmark folder" aria-label="Select bookmark folder" style="flex: 1; background: #202124; border: 1px solid #5f6368; border-radius: 4px; padding: 6px 8px; color: #e8eaed; outline: none;">
+                            <option value="Bookmarks bar">Bookmarks bar</option>
+                            <option value="Other bookmarks">Other bookmarks</option>
+                            <option value="Mobile bookmarks">Mobile bookmarks</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" onclick="removeCurrentBookmark()" style="background: transparent; border: none; color: #8ab4f8; padding: 6px 16px; border-radius: 16px; font-weight: 500; cursor: pointer;">Remove</button>
+                <button type="button" onclick="saveCurrentBookmark()" style="background: #8ab4f8; border: none; color: #202124; padding: 6px 16px; border-radius: 16px; font-weight: 500; cursor: pointer;">Done</button>
+            </div>
+        </div>
+        <div id="suggDrop" class="sugg-drop"></div>
+      </div>
+      <div class="user-wrap">
+        <button type="button" class="avatar-btn" id="avatarBtn" onclick="toggleMenu(event)">G</button>
+        <button type="button" class="dots-btn" id="dotsBtn" onclick="toggleSettingsMenu(event)">⋮</button>
+        <div class="user-menu chrome-panel" id="userMenu">
+          <div class="panel-section active-profile-card">
+            <div class="avatar-xl" id="menuAvatar">G</div>
+            <div class="profile-name-lg" id="menuName">Not signed in</div>
+            <div class="profile-email" id="menuEmail"></div>
+            <div id="menuPromo" style="display: none; font-size: 13px; color: #5f6368; text-align: center; margin-top: 4px; padding: 0 16px;">
+              Sign in to get your passwords and more on all your devices
+            </div>
+            <div class="profile-actions" style="margin-top: 12px; display: none;" id="signOutWrap">
+              <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+            </div>
+            <div class="profile-actions" style="margin-top: 12px;" id="signInWrap">
+              <button class="sign-out-btn" onclick="toggleSignIn()" id="signInBtnText">Sign in</button>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item">
+              <span class="icon">🔑</span><span class="text">Passwords and autofill</span>
+            </div>
+            <div class="panel-item" onclick="openGoogleAccount()">
+              <span class="icon" style="font-weight:bold; font-family:serif;">G</span><span class="text">Manage your
+                Google Account</span>
+            </div>
+            <div class="panel-item" onclick="openCustomiseProfile()">
+              <span class="icon">🖊</span><span class="text">Customise profile</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">🔄</span><span class="text">Sync is on</span>
+            </div>
+          </div>
+          <div class="panel-section" id="otherProfilesContainer">
+            <div class="section-title">Other Chrome profiles</div>
+            <div id="otherProfilesList"></div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item" onclick="showProfileSetup()">
+              <span class="icon">👤+</span><span class="text">Add Chrome profile</span>
+            </div>
+            <div class="panel-item" onclick="openGuestMode()">
+              <span class="icon">👤</span><span class="text">Open guest profile</span>
+            </div>
+            <div class="panel-item" onclick="showProfileManager()">
+              <span class="icon">⚙</span><span class="text">Manage Chrome profiles</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incognito Menu -->
+        <div class="user-menu chrome-panel" id="incognitoMenu" style="right: 40px; min-width: 220px;">
+          <div class="panel-section" style="padding: 16px; text-align: center; border-bottom: 1px solid #dadce0;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🕵️</div>
+            <div style="font-size: 16px; font-weight: 500;">Incognito</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item" onclick="window.close()">
+              <span class="icon">✕</span><span class="text">Close Incognito</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Guest Menu -->
+        <div class="user-menu chrome-panel" id="guestMenu" style="right: 40px; min-width: 220px;">
+          <div class="panel-section" style="padding: 16px; text-align: center; border-bottom: 1px solid #dadce0;">
+            <div style="font-size: 32px; margin-bottom: 8px;">👤</div>
+            <div style="font-size: 16px; font-weight: 500;">Guest</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item" onclick="window.close()">
+              <span class="icon">✕</span><span class="text">Close Guest</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div class="settings-menu chrome-panel" id="settingsMenu" style="min-width: 280px;">
+          <div class="panel-section promo">
+            <span class="icon">💻</span>
+            <span class="text">Set Chrome as your default browser</span>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item" onclick="window.openNewTab()">
+              <span class="icon">⊞</span><span class="text">New tab</span><span class="shortcut">Ctrl+T</span>
+            </div>
+            <div class="panel-item" onclick="window.openNewWindow()">
+              <span class="icon">🗗</span><span class="text">New window</span><span class="shortcut">Ctrl+N</span>
+            </div>
+            <div class="panel-item" onclick="window.openIncognitoWindow()">
+              <span class="icon">🕵</span><span class="text">New Incognito window</span><span
+                class="shortcut">Ctrl+Shift+N</span>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item">
+              <span class="icon">🔑</span><span class="text">Passwords and autofill</span><span
+                class="arrow-right">›</span>
+            </div>
+            <div class="panel-item" onclick="showHistoryView()">
+              <span class="icon">🕒</span><span class="text">History</span><span class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">📥</span><span class="text">Downloads</span><span class="shortcut">Ctrl+J</span>
+            </div>
+            <div class="panel-item" onclick="navigate('chrome://bookmarks'); toggleSettingsMenu(event);">
+              <span class="icon">⭐</span><span class="text">Bookmarks and lists</span><span class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">🗂</span><span class="text">Tab groups</span><span class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">🧩</span><span class="text">Extensions</span><span class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">🗑</span><span class="text">Delete browsing data...</span><span
+                class="shortcut">Ctrl+Shift+Del</span>
+            </div>
+          </div>
+          <div class="panel-section zoom-sec">
+            <span class="icon">🔍</span><span class="text">Zoom</span>
+            <div class="zoom-controls">
+              <button class="zoom-btn">-</button>
+              <span class="zoom-level">100%</span>
+              <button class="zoom-btn">+</button>
+              <button class="zoom-full">🖵</button>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item">
+              <span class="icon">🖨</span><span class="text">Print...</span><span class="shortcut">Ctrl+P</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">✨</span><span class="text">Open Gemini in Chrome</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">📷</span><span class="text">Search this tab with Google Lens</span>
+            </div>
+            <div class="panel-item disabled">
+              <span class="icon">🅰</span><span class="text">Translate...</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">🔍</span><span class="text">Find and edit</span><span class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">📺</span><span class="text">Cast, save and share</span><span
+                class="arrow-right">›</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">⚙</span><span class="text">More tools</span><span class="arrow-right">›</span>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-item" onclick="showSettingsView()">
+              <span class="icon">⚙</span><span class="text">Settings</span>
+            </div>
+            <div class="panel-item">
+              <span class="icon">❓</span><span class="text">Help</span><span class="arrow-right">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bookmarks Bar -->
+    <div id="bookmarksBar" class="bookmarks-bar d-none" style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: var(--theme-bg, #fff); border-bottom: 1px solid #c6c9cc; height: 28px; overflow-x: auto; font-size: 12px;">
+        <!-- Bookmarks injected here -->
+    </div>
+
+    <!-- Content -->
+    <div class="content-area" id="contentArea">
+
+
+      <!-- New Tab View -->
+      <div id="viewNewtab" style="height: 100%;">
+        <div class="newtab-page" id="normalNewtab" style="background: var(--theme-bg, transparent); color: var(--theme-text, #202124); position: relative;">
+          
+          <!-- Top Right Google Nav -->
+          <div style="position: absolute; top: 16px; right: 24px; display: flex; align-items: center; gap: 16px; font-family: arial, sans-serif; font-size: 14px;">
+            <a href="#" style="color: inherit; text-decoration: none;" onclick="navigate('gmail.com'); return false;">Gmail</a>
+            <a href="#" style="color: inherit; text-decoration: none;" onclick="showView('Images'); updateTab('Images', 'Google Images'); return false;">Images</a>
+            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer;" title="Google apps" onclick="toggleGoogleAppsMenu(event)" id="googleAppsBtn">
+                <svg focusable="false" viewBox="0 0 24 24" style="fill: currentColor; width: 24px; height: 24px; pointer-events: none;">
+                    <path d="M6,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM16,6c0,1.1 0.9,2 2,2s2,-0.9 2,-2 -0.9,-2 -2,-2 -2,0.9 -2,2zM12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z"></path>
+                </svg>
+            </div>
+            <div id="googleNavUnauth" style="display: flex; align-items: center; gap: 16px;">
+              <button style="background: #1a73e8; color: #ffffff; border: none; border-radius: 4px; padding: 10px 24px; font-weight: 500; font-size: 14px; cursor: pointer;" onclick="toggleSignIn()">Sign in</button>
+            </div>
+            <div id="googleNavAuth" class="d-none" style="display: flex; align-items: center; gap: 16px;">
+              <div class="google-avatar-ring" style="width: 40px; height: 40px; border-radius: 50%; padding: 2px; background: conic-gradient(#ea4335 0deg 90deg, #fbbc04 90deg 180deg, #34a853 180deg 270deg, #4285f4 270deg 360deg); cursor: pointer;" onclick="googleSignOut()" title="Sign out">
+                <div id="googleNavAvatar" style="width: 100%; height: 100%; border-radius: 50%; background: #00796b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; border: 2px solid #202124; box-sizing: border-box; overflow: hidden;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Google Apps Menu Dropdown -->
+          <div id="googleAppsMenu" class="google-apps-menu d-none" style="border-radius: 24px; padding: 16px 8px 16px 16px; background: #282a2d; border: 1px solid #3c4043; width: 340px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px;">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 500; color: #e8eaed; font-family: 'Roboto', arial, sans-serif;">Your favourites</h3>
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: #3c4043; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9aa0a6; font-size: 14px;">✎</div>
+            </div>
+            <div class="apps-grid" style="overflow-y: auto; max-height: 400px; padding-right: 8px;">
+              <div class="app-item" onclick="navigate('https://myaccount.google.com/?utm_source=OGB&utm_medium=app&authuser=0')"><div id="googleAppsMenuAccountAvatar" class="app-icon" style="background:#00796b; color:white; font-size: 16px; border: 1px solid #202124; overflow: hidden;">S</div><span style="margin-top: 4px;">Account</span></div>
+              <div class="app-item" onclick="navigate('https://www.google.com/?authuser=0&zx=1782221997713')"><div class="app-icon" style="background:white; color:#4285f4; font-weight:bold; font-size: 22px;">G</div><span style="margin-top: 4px;">Search</span></div>
+              <div class="app-item" onclick="navigate('https://maps.google.com/?authuser=0')"><div class="app-icon" style="background:#34a853; color:white; font-size: 20px;">📍</div><span style="margin-top: 4px;">Maps</span></div>
+              <div class="app-item" onclick="navigate('https://www.youtube.com/?authuser=0')"><div class="app-icon" style="background:#ff0000; color:white; font-size: 20px;">▶</div><span style="margin-top: 4px;">YouTube</span></div>
+              <div class="app-item" onclick="navigate('https://play.google.com/store/games?device=windows')"><div class="app-icon" style="background:transparent; color:#ea4335; font-size: 24px;">▶️</div><span style="margin-top: 4px;">Play</span></div>
+              <div class="app-item" onclick="navigate('https://news.google.com/home?hl=en-PK&gl=PK&ceid=PK:en')"><div class="app-icon" style="background:#4285f4; color:white; font-size: 20px;">📰</div><span style="margin-top: 4px;">News</span></div>
+              <div class="app-item" onclick="navigate('https://mail.google.com/mail/?authuser=0')"><div class="app-icon" style="background:white; color:#ea4335; font-weight:bold; font-size: 22px;">M</div><span style="margin-top: 4px;">Gmail</span></div>
+              <div class="app-item" onclick="navigate('https://meet.google.com/landing?hs=197&authuser=0')"><div class="app-icon" style="background:#fbbc04; color:white; font-size: 20px;">📹</div><span style="margin-top: 4px;">Meet</span></div>
+              <div class="app-item" onclick="navigate('https://chat.google.com/app/home')"><div class="app-icon" style="background:#34a853; color:white; font-size: 20px;">💬</div><span style="margin-top: 4px;">Chat</span></div>
+              <div class="app-item" onclick="navigate('https://drive.google.com/drive/')"><div class="app-icon" style="background:transparent; font-size: 24px;">🔺</div><span style="margin-top: 4px;">Drive</span></div>
+              <div class="app-item" onclick="navigate('https://business.google.com/?gmbsrc=ww-ww-ot-gs-z-gmb-l-z-h~z-ogb-u&authuser=0')"><div class="app-icon" style="background:#4285f4; color:white; font-size: 20px;">🏪</div><span style="margin-top: 4px;">Business ...</span></div>
+              <div class="app-item" onclick="navigate('https://gemini.google.com/?utm_source=app_launcher&utm_medium=owned&utm_campaign=base_all')"><div class="app-icon" style="background:linear-gradient(135deg, #4285f4, #ea4335); color:white; font-size: 20px; border-radius: 20%;">✨</div><span style="margin-top: 4px;">Gemini</span></div>
+              <div class="app-item" onclick="navigate('https://calendar.google.com/calendar?authuser=0')"><div class="app-icon" style="background:#4285f4; color:white; font-size: 16px; font-weight: bold;">31</div><span style="margin-top: 4px;">Calendar</span></div>
+              <div class="app-item" onclick="navigate('https://photos.google.com/?authuser=0')"><div class="app-icon" style="background:transparent; font-size: 24px;">🌀</div><span style="margin-top: 4px;">Photos</span></div>
+              <div class="app-item" onclick="navigate('https://translate.google.com/?authuser=0')"><div class="app-icon" style="background:#4285f4; color:white; font-size: 20px;">A文</div><span style="margin-top: 4px;">Translate</span></div>
+            </div>
+          </div>
+          <div class="g-logo big" style="margin-bottom: 30px;">
+            <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+          </div>
+          <div class="nt-search-bar" style="max-width: 680px; width: 100%; border-radius: 24px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: #fff; box-shadow: 0 1px 6px rgba(32,33,36,0.1); margin-bottom: 30px; border: 1px solid #dfe1e5;">
+            <span style="cursor:pointer; color:#9aa0a6; font-size:18px;" onclick="handleNTSearchClick('ntInput')">🔍</span>
+            <input id="ntInput" class="nt-input" placeholder="Search Google or type a URL" title="Search Google or type a URL" aria-label="Search" onkeydown="handleNTKey(event)" oninput="handleNTInput(this.value)" style="flex:1; border:none; outline:none; font-size:16px; color:#202124; background:transparent;">
+            <div style="display:flex; align-items:center; gap:16px; margin-left:auto;">
+              <span style="cursor:pointer; font-size:18px;" title="Search by voice">🎤</span>
+              <span style="cursor:pointer; font-size:18px;" title="Search by image">📷</span>
+              <div style="cursor:pointer; display:flex; align-items:center; gap:6px; background:#f1f3f4; padding:6px 12px; border-radius:16px; font-size:13px; font-weight:500; color:#5f6368; border: 1px solid #dadce0;" title="AI Mode">
+                <span style="font-size:14px;">✨</span> AI Mode
+              </div>
+            </div>
+          </div>
+          <div class="shortcuts" style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; max-width:800px;">
+            <div class="shortcut" onclick="navigate('youtube.com')"><div class="sc-icon" style="background:#f1f3f4; color:#ff0000; font-size:24px;">▶</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">YouTube</span></div>
+            <div class="shortcut" onclick="navigate('drive.google.com')"><div class="sc-icon" style="background:#f1f3f4; color:#1a73e8; font-size:24px;">📁</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">university work</span></div>
+            <div class="shortcut" onclick="navigate('thermodynamics.com')"><div class="sc-icon" style="background:#f1f3f4; color:#7b1fa2; font-size:20px; font-weight:bold;">O</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">Thermodynami...</span></div>
+            <div class="shortcut" onclick="navigate('spotify.com')"><div class="sc-icon" style="background:#f1f3f4; color:#1db954; font-size:20px; font-weight:bold;">S</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">Spotify - Search</span></div>
+            <div class="shortcut" onclick="navigate('schoolbridge.com')"><div class="sc-icon" style="background:#f1f3f4; color:#c2185b; font-size:20px; font-weight:bold;">B</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">School Bridge</span></div>
+            <div class="shortcut" onclick="navigate('google.com')"><div class="sc-icon" style="background:#f1f3f4; font-size:24px; color:#202124;">G</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">Sign in</span></div>
+            <div class="shortcut" onclick="navigate('eduboard.com')"><div class="sc-icon" style="background:#f1f3f4; color:#f29900; font-size:14px; font-weight:bold;">eDu</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">https://eduboar...</span></div>
+            <div class="shortcut"><div class="sc-icon" style="background:#f1f3f4; color:#5f6368; font-size:24px;">+</div><span style="color:#5f6368; font-size:12px; margin-top:8px;">Add shortcut</span></div>
+          </div>
+        </div>
+
+        <div class="newtab-page d-none" id="incognitoNewtab"
+          style="background:#202124; color:#e8eaed; height: 100%; overflow-y: auto; display: flex; align-items: center; justify-content: center;">
+          <div style="max-width: 660px; width: 100%; text-align: left; padding: 20px;">
+            <div style="display:flex; justify-content:center; margin-bottom: 24px;">
+              <div
+                style="background:#e8eaed; color:#202124; font-size:48px; border-radius:50%; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+                🕵️</div>
+            </div>
+            <h1 style="font-size: 28px; font-weight: 400; margin-bottom: 20px; text-align: center;">You've gone
+              Incognito</h1>
+            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 32px; color: #9aa0a6;">
+              Others who use this device won't see your activity, so you can browse more privately. This won't change
+              how data is collected by websites that you visit and the services that they use, including Google.
+              Downloads, bookmarks and reading list items will be saved. <a href="#"
+                style="color:#8ab4f8; text-decoration:none;">Learn more</a>
+            </p>
+
+            <div style="display: flex; gap: 40px; margin-bottom: 32px; font-size: 14px; line-height: 1.8;">
+              <div style="flex: 1;">
+                <div style="color:#e8eaed; margin-bottom: 8px;">Chrome won't save:</div>
+                <ul style="color:#9aa0a6; padding-left: 20px; margin: 0;">
+                  <li>Your browsing history</li>
+                  <li>Cookies and site data</li>
+                  <li>Information entered in forms</li>
+                </ul>
+              </div>
+              <div style="flex: 1;">
+                <div style="color:#e8eaed; margin-bottom: 8px;">Your activity might still be visible to:</div>
+                <ul style="color:#9aa0a6; padding-left: 20px; margin: 0;">
+                  <li>Websites that you visit</li>
+                  <li>Your employer or school</li>
+                  <li>Your Internet service provider</li>
+                </ul>
+              </div>
+            </div>
+
+            <div
+              style="background: #282b2e; border-radius: 8px; padding: 16px; display: flex; gap: 16px; align-items: flex-start;">
+              <span style="font-size: 20px; color:#9aa0a6;">👁‍🗨</span>
+              <div>
+                <div style="color:#e8eaed; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Third-party cookies
+                  are blocked</div>
+                <div style="color:#9aa0a6; font-size: 12px; line-height: 1.6;">
+                  When you're in Incognito mode, sites can't use third-party cookies. If a site that relies on these
+                  cookies isn't working, you can <a href="#" style="color:#8ab4f8; text-decoration:none;">try giving
+                    that site temporary access to third-party cookies</a>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Account View -->
+      <div id="viewAccount" class="d-none full-size" style="background:#fff; color:#202124;">
+        <div style="display:flex; height:100%;">
+          <div style="width:280px; padding:20px; border-right:1px solid #dadce0;">
+            <div style="font-size:22px; margin-bottom:30px; font-weight:500;">Google Account</div>
+            <div
+              style="background:#e8f0fe; color:#1a73e8; border-radius:0 24px 24px 0; padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px;">
+              <span
+                style="background:#1a73e8; color:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px;">🏠</span>
+              Home
+            </div>
+            <div
+              style="padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px; color:#5f6368; cursor:pointer;">
+              <span style="font-size:18px;">👨‍👩‍👧‍👦</span> Family</div>
+            <div
+              style="padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px; color:#5f6368; cursor:pointer;">
+              <span style="font-size:18px;">✨</span> Google AI Pro plan</div>
+            <div
+              style="padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px; color:#5f6368; cursor:pointer;">
+              <span style="font-size:18px;">💳</span> Wallet & subscriptions</div>
+            <div
+              style="padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px; color:#5f6368; cursor:pointer;">
+              <span style="font-size:18px;">🪪</span> Personal info</div>
+            <div
+              style="padding:12px 24px; margin-left:-20px; font-weight:500; display:flex; align-items:center; gap:12px; color:#5f6368; cursor:pointer;">
+              <span style="font-size:18px;">🔒</span> Security & sign-in</div>
+          </div>
+          <div style="flex:1; padding:40px; overflow-y:auto; display:flex; flex-direction:column; align-items:center;">
+            <div style="position:relative; margin-bottom:16px;">
+              <div id="acctAvatar"
+                style="width:120px; height:120px; border-radius:50%; background:#4285f4; color:#fff; font-size:48px; display:flex; align-items:center; justify-content:center; border: 4px solid #ea4335;">
+                G</div>
+              <div
+                style="position:absolute; bottom:0; right:0; background:#fff; border:2px solid #fff; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                📷</div>
+            </div>
+            <div id="acctName" style="font-size:32px; margin-bottom:8px;">Not signed in</div>
+            <div id="acctEmail" style="font-size:16px; color:#5f6368; margin-bottom:40px;">Please sign in to manage your
+              account</div>
+
+            <div
+              style="background:#f1f3f4; border-radius:24px; width:100%; max-width:600px; display:flex; align-items:center; padding:12px 24px; margin-bottom:24px;">
+              <span style="color:#5f6368; margin-right:12px;">🔍</span>
+              <input type="text" placeholder="Search Google Account" aria-label="Search Google Account"
+                title="Search Google Account"
+                style="background:transparent; border:none; color:#202124; outline:none; font-size:16px; width:100%;">
+            </div>
+
+            <div
+              style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap; justify-content:center; max-width:600px;">
+              <button
+                style="background:transparent; border:1px solid #dadce0; color:#202124; padding:8px 16px; border-radius:16px; font-size:14px; cursor:pointer;">My
+                password</button>
+              <button
+                style="background:transparent; border:1px solid #dadce0; color:#202124; padding:8px 16px; border-radius:16px; font-size:14px; cursor:pointer;">Devices</button>
+              <button
+                style="background:transparent; border:1px solid #dadce0; color:#202124; padding:8px 16px; border-radius:16px; font-size:14px; cursor:pointer;">Password
+                Manager</button>
+              <button
+                style="background:transparent; border:1px solid #dadce0; color:#202124; padding:8px 16px; border-radius:16px; font-size:14px; cursor:pointer;">My
+                Activity</button>
+            </div>
+
+            <div
+              style="background:#fff; border:1px solid #dadce0; border-radius:16px; padding:24px; width:100%; max-width:600px;">
+              <div style="display:flex; gap:16px; align-items:flex-start;">
+                <div style="font-size:24px;">✨</div>
+                <div style="flex:1;">
+                  <div style="font-size:16px; font-weight:500; margin-bottom:8px;">Your Google AI Pro plan comes with
+                    family sharing</div>
+                  <div style="font-size:14px; color:#5f6368; margin-bottom:16px; line-height:1.5;">Up to 5 family
+                    members can share your AI and storage benefits at no extra cost</div>
+                  <div style="display:flex; justify-content:flex-end; gap:16px;">
+                    <button
+                      style="background:transparent; border:none; color:#1a73e8; font-weight:500; cursor:pointer;">Dismiss</button>
+                    <button
+                      style="background:#1a73e8; border:none; color:#fff; font-weight:500; padding:8px 16px; border-radius:16px; cursor:pointer;">Start
+                      sharing</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customise Profile View -->
+      <div id="viewCustomiseProfile" class="d-none full-size"
+        style="background:#202124; color:#e8eaed; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <div style="display:flex; height:100%;">
+          <!-- Settings Sidebar -->
+          <div style="width:280px; background:#202124; border-right:1px solid #3c4043; overflow-y:auto;">
+            <div
+              style="padding:20px 24px; font-size:22px; font-weight:500; display:flex; align-items:center; gap:16px;">
+              <span style="font-size:24px;">⚙️</span> Settings
+            </div>
+            <div
+              style="background:#e8f0fe14; color:#8ab4f8; border-radius:0 24px 24px 0; padding:12px 24px; margin-right:20px; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">G</span> You and Google
+            </div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">🔑</span> Autofill and passwords</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">🛡️</span> Privacy and security</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">🚀</span> Performance</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">✨</span> AI innovations</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">🎨</span> Appearance</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">🔍</span> Search engine</div>
+            <div
+              style="padding:12px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">💻</span> Default browser</div>
+          </div>
+
+          <!-- Main Content -->
+          <div style="flex:1; background:#202124; overflow-y:auto;">
+            <!-- Topbar -->
+            <div
+              style="height:56px; border-bottom:1px solid #3c4043; display:flex; align-items:center; padding:0 24px;">
+              <div
+                style="background:#303134; border-radius:24px; display:flex; align-items:center; padding:8px 16px; width:400px; max-width:100%;">
+                <span style="color:#9aa0a6; margin-right:12px;">🔍</span>
+                <input type="text" placeholder="Search settings" aria-label="Search settings" title="Search settings"
+                  style="background:transparent; border:none; color:#e8eaed; outline:none; font-size:14px; width:100%;">
+              </div>
+            </div>
+
+            <div style="max-width:680px; margin:0 auto; padding:40px 20px;">
+              <div style="display:flex; align-items:center; gap:16px; margin-bottom:32px;">
+                <span style="cursor:pointer; font-size:24px; color:#e8eaed;" onclick="showView('Newtab')">←</span>
+                <span style="font-size:16px; font-weight:500;">Customise profile</span>
+              </div>
+
+              <!-- Name -->
+              <div style="margin-bottom:32px;">
+                <div style="font-size:14px; font-weight:500; margin-bottom:12px;">Name your Chrome profile</div>
+                <input type="text" id="customProfileName" value="Samin" placeholder="Name your Chrome profile"
+                  aria-label="Name your Chrome profile" title="Name your Chrome profile"
+                  style="background:#303134; border:1px solid #5f6368; color:#e8eaed; padding:12px 16px; border-radius:8px; font-size:14px; width:300px; outline:none;">
+              </div>
+
+              <hr style="border:0; border-top:1px solid #3c4043; margin-bottom:32px;">
+
+              <!-- Theme Colors -->
+              <div style="margin-bottom:32px;">
+                <div style="font-size:14px; font-weight:500; margin-bottom:24px;">Pick a theme colour</div>
+                <div id="themeColorGrid" style="display:flex; flex-wrap:wrap; gap:16px;">
+                  <!-- Colors will be generated by JS -->
+                </div>
+              </div>
+
+              <hr style="border:0; border-top:1px solid #3c4043; margin-bottom:32px;">
+
+              <!-- Avatars -->
+              <div style="margin-bottom:32px;">
+                <div style="font-size:14px; font-weight:500; margin-bottom:24px;">Pick an avatar</div>
+                <div id="avatarGrid" style="display:flex; flex-wrap:wrap; gap:16px;">
+                  <!-- Avatars will be generated by JS -->
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:40px; padding-bottom:40px;">
+                <button onclick="showView('Newtab')"
+                  style="background:transparent; border:1px solid #5f6368; color:#e8eaed; padding:8px 24px; border-radius:4px; font-size:14px; cursor:pointer;">Cancel</button>
+                <button onclick="saveCustomiseProfile()"
+                  style="background:#8ab4f8; border:none; color:#202124; padding:8px 24px; border-radius:4px; font-size:14px; font-weight:500; cursor:pointer;">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results View -->
+      <div id="viewResults" class="d-none" style="height: 100%; overflow-y: auto; background: var(--theme-bg, #fff); position: relative;">
+        <!-- Top Search Header -->
+        <div style="border-bottom: 1px solid var(--theme-border, #ebebeb); padding: 20px 20px 0 20px; position: sticky; top: 0; background: var(--theme-bg, #fff); z-index: 100;">
+            <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 20px;">
+                <div class="g-logo sm" style="margin-bottom: 0; cursor: pointer;" onclick="showView('Newtab')">
+                  <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+                </div>
+                <div class="nt-search-bar" style="margin-bottom: 0; flex: 1; max-width: 692px; border-radius: 24px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: var(--theme-bg, #fff); box-shadow: 0 1px 6px rgba(32,33,36,0.1); border: 1px solid var(--theme-border, #dfe1e5);">
+                  <input id="resultsSearchInput" class="nt-input" placeholder="" title="Search" onkeydown="handleResultsKey(event)" style="flex:1; border:none; outline:none; font-size:16px; color:var(--theme-text, #202124); background:transparent;">
+                  <span style="cursor:pointer; color:#9aa0a6; font-size:18px;" onclick="document.getElementById('resultsSearchInput').value=''">✕</span>
+                  <div style="width: 1px; height: 24px; background: #dfe1e5; margin: 0 4px;"></div>
+                  <span style="cursor:pointer; font-size:18px;" title="Search by voice">🎤</span>
+                  <span style="cursor:pointer; font-size:18px;" title="Search by image">📷</span>
+                  <span style="cursor:pointer; color:#1a73e8; font-size:18px;" onclick="executeResultsSearch()">🔍</span>
+                </div>
+                
+                <!-- Right side icons -->
+                <div class="user-wrap" style="margin-left: auto; display: flex; align-items: center; gap: 16px; position: relative;">
+                    <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer;" title="Google apps" onclick="toggleGoogleAppsMenu(event)">
+                        <svg focusable="false" viewBox="0 0 24 24" style="fill: #5f6368; width: 24px; height: 24px;"><path d="M6,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM16,6c0,1.1 0.9,2 2,2s2,-0.9 2,-2 -0.9,-2 -2,-2 -2,0.9 -2,2zM12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z"></path></svg>
+                    </div>
+                    <div class="avatar-btn" style="width: 32px; height: 32px; padding: 0; border: none; font-size: 16px; border-radius: 50%; background: #1a73e8; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;" onclick="toggleMenu(event)"><img id="resultsAvatar" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;"><span id="resultsAvatarInitial">S</span></div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div id="resultsTabsNav" style="display: flex; gap: 24px; padding-left: 140px; font-size: 14px; color: #5f6368; overflow-x: auto;">
+                <div class="result-tab" onclick="switchSearchTab('ai')" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">✨ AI Mode</div>
+                <div class="result-tab active" onclick="switchSearchTab('all')" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid #1a73e8; color: #1a73e8;">All</div>
+                <div class="result-tab" onclick="switchSearchTab('news')" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">News</div>
+                <div class="result-tab" onclick="switchSearchTab('images')" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">Images</div>
+                <div class="result-tab" onclick="switchSearchTab('videos')" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">Videos</div>
+                <div class="result-tab" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">Short videos</div>
+                <div class="result-tab" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">Forums</div>
+                <div class="result-tab" style="cursor: pointer; padding-bottom: 12px; border-bottom: 3px solid transparent;">More ▾</div>
+                <div style="flex: 1;"></div>
+                <div class="result-tab" style="cursor: pointer; padding-bottom: 12px;">Tools ▾</div>
+            </div>
+        </div>
+        
+        <div class="results-page" style="padding-left: 140px; padding-top: 16px;">
+          <span class="result-stats" id="resultStats"></span>
+          <div id="knowledgePanel"></div>
+          <div id="resultList" class="result-list"></div>
+        </div>
+      </div>
+
+      <!-- External View Container -->
+      <div id="viewExternal" class="d-none full-size">
+      </div>
+
+      <!-- Images View -->
+      <div id="viewImages" class="d-none full-size" style="background:#202124; color:#e8eaed; display:flex; flex-direction:column; position:relative;">
+          
+          <!-- Top Right Nav -->
+          <div style="position: absolute; top: 16px; right: 24px; display: flex; align-items: center; gap: 16px; font-family: arial, sans-serif; font-size: 14px; z-index: 10;">
+            <a href="#" style="color: inherit; text-decoration: none;" onclick="showView('Newtab'); updateTab('New Tab', 'New Tab'); return false;">Search</a>
+            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer;" title="Google apps" onclick="toggleGoogleAppsMenu(event)">
+                <svg focusable="false" viewBox="0 0 24 24" style="fill: currentColor; width: 24px; height: 24px; pointer-events: none;">
+                    <path d="M6,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM16,6c0,1.1 0.9,2 2,2s2,-0.9 2,-2 -0.9,-2 -2,-2 -2,0.9 -2,2zM12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z"></path>
+                </svg>
+            </div>
+            <div id="googleNavUnauthImages" style="display: flex; align-items: center; gap: 16px;">
+              <button style="background: #1a73e8; color: #ffffff; border: none; border-radius: 4px; padding: 10px 24px; font-weight: 500; font-size: 14px; cursor: pointer;" onclick="toggleSignIn()">Sign in</button>
+            </div>
+            <div id="googleNavAuthImages" class="d-none" style="display: flex; align-items: center; gap: 16px;">
+              <div class="google-avatar-ring" style="width: 40px; height: 40px; border-radius: 50%; padding: 2px; background: conic-gradient(#ea4335 0deg 90deg, #fbbc04 90deg 180deg, #34a853 180deg 270deg, #4285f4 270deg 360deg); cursor: pointer;" onclick="googleSignOut()" title="Sign out">
+                <div id="googleNavAvatarImages" style="width: 100%; height: 100%; border-radius: 50%; background: #00796b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; border: 2px solid #202124; box-sizing: border-box; overflow: hidden;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:160px; width:100%;">
+            <div style="position: relative; margin-bottom: 30px; text-align: center;">
+              <div class="g-logo big" style="margin-bottom: 0;">
+                <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+              </div>
+              <span style="color: #8ab4f8; font-size: 16px; position: absolute; right: 0; bottom: -5px; font-family: arial, sans-serif;">images</span>
+            </div>
+            
+            <div class="nt-search-bar" style="max-width: 680px; width: 100%; border-radius: 24px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: #303134; box-shadow: 0 1px 6px rgba(0,0,0,0.3); margin-bottom: 30px; border: 1px solid #5f6368;">
+              <span style="cursor:pointer; color:#9aa0a6; font-size:18px;" onclick="executeImagesSearch()">🔍</span>
+              <input id="imagesSearchInput" class="nt-input" placeholder="" title="Search Images" aria-label="Search" onkeydown="handleImagesKey(event)" style="flex:1; border:none; outline:none; font-size:16px; color:#e8eaed; background:transparent;">
+              <div style="display:flex; align-items:center; gap:16px; margin-left:auto;">
+                <span style="cursor:pointer; font-size:18px; filter: grayscale(1) brightness(1.5);" title="Search by voice">🎤</span>
+                <span style="cursor:pointer; font-size:18px; filter: grayscale(1) brightness(1.5);" title="Search by image">📷</span>
+              </div>
+            </div>
+            
+          </div>
+      </div>
+
+
+
+      <!-- Settings View -->
+      <div id="viewSettings" class="d-none full-size" style="background:#202124; color:#e8eaed; display:flex; font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif; overflow:hidden;">
+        
+        <!-- Sidebar -->
+        <div style="width:250px; border-right:1px solid #3c4043; display:flex; flex-direction:column; padding-top:16px; overflow-y:auto;">
+          <h2 style="font-size:22px; font-weight:400; margin:0 0 24px 24px; color:#e8eaed;">Settings</h2>
+          
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="padding:10px 24px; background:#4285f433; color:#8ab4f8; border-radius:0 24px 24px 0; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer;">
+              <span style="font-size:18px;">G</span>
+              You and Google
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🔑</span>
+              Autofill and passwords
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🛡️</span>
+              Privacy and security
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">⚡</span>
+              Performance
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">✨</span>
+              AI innovations
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🎨</span>
+              Appearance
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🔍</span>
+              Search engine
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🌐</span>
+              Default browser
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🚀</span>
+              On startup
+            </div>
+            <div style="height:1px; background:#3c4043; margin:8px 0;"></div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🅰️</span>
+              Languages
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">📥</span>
+              Downloads
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">♿</span>
+              Accessibility
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">⚙️</span>
+              System
+            </div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; gap:16px; cursor:pointer; border-radius:0 24px 24px 0;">
+              <span style="font-size:18px;">🔄</span>
+              Reset settings
+            </div>
+            <div style="height:1px; background:#3c4043; margin:8px 0;"></div>
+            <div style="padding:10px 24px; color:#e8eaed; font-weight:500; display:flex; align-items:center; justify-content:space-between; cursor:pointer; border-radius:0 24px 24px 0;">
+              <div style="display:flex; align-items:center; gap:16px;">
+                <span style="font-size:18px;">🧩</span>
+                Extensions
+              </div>
+              <span style="font-size:14px; color:#9aa0a6;">↗️</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; padding-top:16px; overflow-y:auto; position:relative;">
+          
+          <!-- Sticky Search Bar -->
+          <div style="position:sticky; top:0; background:#202124; padding:8px 0; z-index:10; width:100%; display:flex; justify-content:center;">
+            <div style="width:680px; max-width:90%; position:relative;">
+              <span style="position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:16px; color:#9aa0a6;">🔍</span>
+              <input type="text" placeholder="Search settings" style="width:100%; padding:12px 16px 12px 48px; border-radius:24px; background:#303134; border:1px solid #5f6368; color:#e8eaed; font-size:14px; outline:none; box-sizing:border-box;">
+            </div>
+          </div>
+
+          <div style="width:680px; max-width:90%; padding-top:32px; padding-bottom:64px;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#9aa0a6; font-size:13px; margin-bottom:32px;">
+              <span>🏢</span> Your browser is managed by your organisation
+            </div>
+
+            <h3 style="font-size:22px; font-weight:400; margin:0 0 16px 0; color:#e8eaed;">You and Google</h3>
+
+            <!-- Settings Card -->
+            <div style="background:#292a2d; border-radius:8px; overflow:hidden;">
+              
+              <!-- Profile Header -->
+              <div style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #3c4043;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                  <div id="settingsProfileAvatar" style="width:40px; height:40px; border-radius:50%; background:#00796b; color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; overflow:hidden;">G</div>
+                  <div>
+                    <div id="settingsProfileName" style="font-size:15px; font-weight:500; color:#e8eaed; margin-bottom:4px;">Not signed in</div>
+                    <div id="settingsProfileStatus" style="font-size:13px; color:#8ab4f8; display:flex; align-items:center; gap:6px;">
+                      <span style="background:#34a853; width:12px; height:12px; border-radius:50%; display:inline-block;"></span>
+                      Syncing to ...
+                    </div>
+                  </div>
+                </div>
+                <button onclick="openTurnOffModal()" style="background:transparent; border:1px solid var(--theme-border, #5f6368); border-radius:4px; padding:6px 16px; color:#8ab4f8; font-weight:500; font-size:13px; cursor:pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--theme-hover, #3c4043)'" onmouseout="this.style.background='transparent'">Turn off</button>
+              </div>
+
+              <!-- List Items -->
+              <div style="padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #3c4043; cursor:pointer;">
+                <span style="font-size:13px; color:#e8eaed;">Sync and Google services</span>
+                <span style="color:#9aa0a6; font-size:18px;">›</span>
+              </div>
+              <div style="padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #3c4043; cursor:pointer;">
+                <span style="font-size:13px; color:#e8eaed;">Manage your Google Account</span>
+                <span style="color:#9aa0a6; font-size:14px;">↗️</span>
+              </div>
+              <div style="padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #3c4043; cursor:pointer; background:#3c404344;">
+                <span style="font-size:13px; color:#e8eaed;">Customise your Chrome profile</span>
+                <span style="color:#9aa0a6; font-size:18px;">›</span>
+              </div>
+              <div style="padding:14px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <span style="font-size:13px; color:#e8eaed;">Import bookmarks and settings</span>
+                <span style="color:#9aa0a6; font-size:18px;">›</span>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      
+      </div>
+
+      <!-- History View -->
+      <div id="viewHistory" class="d-none full-size" style="background:#fff;">
+        <div class="history-layout">
+          <div class="history-sidebar">
+            <div class="hist-side-item active"><span class="icon">🕒</span> Chrome history</div>
+            <div class="hist-side-item"><span class="icon">💻</span> Tabs from other devices</div>
+            <div class="hist-side-item" onclick="showClearDataModal()"><span class="icon">🗑</span> Delete browsing data
+              ↗</div>
+          </div>
+          <div class="history-main">
+            <div class="hist-header">
+              <h2 style="margin:0;font-weight:500;font-size:22px;color:#202124;">History</h2>
+              <div class="hist-search-wrap">
+                <span class="icon" style="color:#5f6368;">🔍</span>
+                <input type="text" id="histSearchInput" placeholder="Search history" title="Search history"
+                  aria-label="Search history" class="hist-search" oninput="filterHistory(this.value)">
+              </div>
+            </div>
+            <div class="hist-tabs">
+              <span class="hist-tab active">By date</span>
+              <span class="hist-tab">By group</span>
+            </div>
+            <div id="historyListContent" class="hist-content">
+              <!-- Dynamic history content -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal for clearing data -->
+      <div class="modal-overlay d-none" id="clearDataModal">
+        <div class="modal-box">
+          <h2 style="margin-top:0;font-size:16px;font-weight:500;">Delete browsing data</h2>
+
+          <div class="modal-time-row">
+            <button class="time-btn" onclick="setTimeRange('15m')">Last 15 min</button>
+            <button class="time-btn" onclick="setTimeRange('1h')">Last hour</button>
+            <button class="time-btn" onclick="setTimeRange('24h')">Last 24 hours</button>
+            <button class="time-btn" onclick="setTimeRange('7d')">Last 7 days</button>
+            <select id="clearTimeRange" class="modal-select" title="Time range" aria-label="Time range">
+              <option value="15m">Last 15 min</option>
+              <option value="1h">Last hour</option>
+              <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+
+          <div class="modal-checkbox-row">
+            <input type="checkbox" id="cbHistory" title="Browsing history" aria-label="Browsing history" checked>
+            <div class="cb-info">
+              <div class="cb-title">Browsing history</div>
+              <div class="cb-desc">Clears history from this device.</div>
+            </div>
+          </div>
+          <div class="modal-checkbox-row">
+            <input type="checkbox" id="cbCookies" title="Cookies and other site data"
+              aria-label="Cookies and other site data" checked>
+            <div class="cb-info">
+              <div class="cb-title">Cookies and other site data</div>
+              <div class="cb-desc">Signs you out of most sites.</div>
+            </div>
+          </div>
+          <div class="modal-checkbox-row">
+            <input type="checkbox" id="cbCache" title="Cached images and files" aria-label="Cached images and files"
+              checked>
+            <div class="cb-info">
+              <div class="cb-title">Cached images and files</div>
+              <div class="cb-desc">Frees up storage.</div>
+            </div>
+          </div>
+
+          <div
+            style="background:#f8f9fa; padding:12px; border-radius:8px; margin: 16px 0; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:500; font-size:13px; color:#202124;">Manage other Google data</div>
+              <div style="font-size:12px; color:#5f6368;">Search history and passwords can be deleted in their
+                management settings</div>
+            </div>
+            <span style="color:#5f6368;">›</span>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="hideClearDataModal()">Cancel</button>
+            <button class="btn-delete" onclick="clearBrowsingData()">Delete data</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookmarks Manager View -->
+      <div id="viewBookmarks" class="content-area d-none" style="padding: 20px;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <h1 style="color: var(--theme-text, #202124); font-size: 22px; font-weight: 500; margin: 0;">Bookmarks</h1>
+                <div style="position: relative; width: 300px;">
+                    <span style="position: absolute; left: 12px; top: 8px; color: var(--theme-text, #5f6368); opacity: 0.7;">🔍</span>
+                    <input type="text" id="bookmarkSearchInput" title="Search bookmarks" aria-label="Search bookmarks" oninput="renderBookmarksManager()" placeholder="Search bookmarks" style="width: 100%; background: var(--theme-bg, #f1f3f4); border: 1px solid var(--theme-border, transparent); border-radius: 8px; padding: 8px 12px 8px 36px; color: var(--theme-text, #202124); outline: none; font-size: 14px;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--theme-border, #dadce0); padding-bottom: 8px;">
+                <button class="bm-tab-btn active" onclick="switchBookmarkTab('Bookmarks bar', this)" style="background: transparent; border: none; color: #1a73e8; cursor: pointer; font-size: 14px; font-weight: 500;">Bookmarks bar</button>
+                <button class="bm-tab-btn" onclick="switchBookmarkTab('Other bookmarks', this)" style="background: transparent; border: none; color: var(--theme-text, #5f6368); cursor: pointer; font-size: 14px; font-weight: 500;">Other bookmarks</button>
+                <button class="bm-tab-btn" onclick="switchBookmarkTab('Mobile bookmarks', this)" style="background: transparent; border: none; color: var(--theme-text, #5f6368); cursor: pointer; font-size: 14px; font-weight: 500;">Mobile bookmarks</button>
+            </div>
+            <div id="bookmarkManagerList" style="background: var(--theme-bg, #fff); border: 1px solid var(--theme-border, transparent); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1);">
+                <!-- Bookmarks will be listed here -->
+            </div>
+        </div>
+      </div>
+
+      <!-- Profile Manager View -->
+      <div id="viewProfileManager" class="d-none full-size">
+        <div class="profile-manager-container">
+          <div class="pm-header">
+            <div class="g-logo big" style="margin-bottom: 30px;">
+              <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+            </div>
+            <h1 class="pm-title">Who's using Chrome?</h1>
+            <p class="pm-subtitle">With Chrome profiles, you can separate all your Chrome stuff. Create profiles for friends and family, or split between work and fun.</p>
+          </div>
+          <div class="pm-grid" id="pmGrid">
+            <!-- Dynamically populated profile cards will go here -->
+          </div>
+          
+          <button class="pm-guest-btn" onclick="openGuestMode()">
+            <span>👤</span> Guest mode
+          </button>
+          <div class="pm-checkbox">
+            <input type="checkbox" id="showOnStartup" checked>
+            <label for="showOnStartup">Show on startup</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Setup View -->
+      <div id="viewProfileSetup" class="d-none full-size">
+        <div class="profile-setup-container">
+          <button class="ps-back-btn" onclick="showProfileManager()">←</button>
+          <div class="ps-icon">👤</div>
+          <h1 class="ps-title">Set up your new Chrome profile</h1>
+          <p class="ps-subtitle">Sign in to get your passwords and more on all your devices</p>
+          <button class="ps-btn-signin" onclick="handleSignInProfile()">Sign in</button>
+          <button class="ps-btn-local" onclick="handleLocalProfile()">Stay signed out</button>
+          <div class="ps-footer">
+            <span style="font-size:16px;">🏢</span>
+            Your device is managed by your organisation. Administrators can access the data in any profile on this device.
+          </div>
+        </div>
+      </div>
+
+      <!-- Local Profile Setup View -->
+      <div id="viewLocalProfileSetup" class="d-none full-size">
+        <div class="profile-setup-container" style="justify-content: flex-start; padding-top: 80px;">
+          <button class="ps-back-btn" onclick="showView('ProfileSetup')">←</button>
+          
+          <div class="avatar-circle" id="lpsAvatar" style="width: 80px; height: 80px; margin-bottom: 24px; font-size: 32px; background: #e8eaed; color: #202124;">
+            👤
+          </div>
+          
+          <h1 class="ps-title" style="margin-bottom: 32px;">Welcome!</h1>
+          
+          <input type="text" id="lpsNameInput" placeholder="Add a name or label, like 'Work' or 'Personal'" 
+            style="width: 360px; padding: 12px 16px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px; margin-bottom: 32px; outline: none; background: #fff; color: #202124;">
+            
+          <div id="lpsColorGrid" style="display:flex; flex-wrap:wrap; gap:16px; justify-content: center; max-width: 400px; margin-bottom: 40px;">
+            <!-- Colors generated by JS -->
+          </div>
+          
+          <div style="display: flex; gap: 16px;">
+            <button class="ps-btn-local" style="margin-bottom: 0; width: 140px; padding: 8px 0;" onclick="showProfileManager()">Cancel</button>
+            <button class="ps-btn-signin" style="margin-bottom: 0; width: 140px; padding: 8px 0;" onclick="completeLocalProfileSetup()">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guest Newtab View -->
+      <div id="viewGuestNewtab" class="d-none full-size" style="background-color: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+        <h1 style="font-size: 28px; font-weight: 400; color: #202124; margin-bottom: 24px;">You're browsing as a Guest</h1>
+        <p style="font-size: 14px; color: #5f6368; max-width: 600px; line-height: 1.5; margin: 0 auto 40px auto; text-align: center;">
+          Pages that you view in this window won't appear in the browser history and they won't leave other traces, like cookies, on the computer after you close all open Guest windows. Any files that you download will be preserved, however.
+        </p>
+        <a href="#" style="color: #1a73e8; font-size: 14px; text-decoration: none; font-weight: 500;">Learn more</a>
+      </div>
+
+      <!-- Choose Account View -->
+      <div id="viewChooseAccount" class="d-none full-size" style="background: var(--theme-bg, #202124); display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto;">
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px;">
+          <div style="background: var(--theme-bg, #202124); border-radius: 28px; width: 100%; max-width: 1040px; min-height: 400px; display: flex; padding: 48px; box-sizing: border-box;">
+            <!-- Left Side -->
+            <div style="flex: 1; padding-right: 48px; display: flex; flex-direction: column; justify-content: flex-start;">
+              <div class="g-logo big" style="margin-bottom: 24px; text-align: left;">
+                <span class="g-blue" style="font-size: 40px;">G</span>
+              </div>
+              <h1 style="color: var(--theme-text, #e8eaed); font-size: 36px; font-weight: 400; margin: 0;">Choose an account</h1>
+            </div>
+            <!-- Right Side -->
+            <div style="flex: 1; max-width: 500px; display: flex; flex-direction: column;">
+              <!-- Account Item -->
+              <div onclick="openPasswordInput()" style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--theme-hover, rgba(255,255,255,0.04))'" onmouseout="this.style.background='transparent'">
+                <div id="chooseAccountAvatar" style="width: 28px; height: 28px; border-radius: 50%; background: #00796b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 16px; overflow: hidden;">G</div>
+                <div style="flex: 1;">
+                  <div id="chooseAccountName" style="color: var(--theme-text, #e8eaed); font-size: 14px; font-weight: 500; margin-bottom: 2px;">Not signed in</div>
+                  <div id="chooseAccountEmail" style="color: var(--theme-text, #9aa0a6); font-size: 12px; opacity: 0.8;"></div>
+                </div>
+                <div style="color: var(--theme-text, #9aa0a6); font-size: 12px; opacity: 0.8;">Signed out</div>
+              </div>
+              <div style="height: 1px; background: var(--theme-border, #3c4043); margin: 8px 0;"></div>
+              
+              <!-- Use another account -->
+              <div onclick="window.toggleSignIn().then(() => navigate('chrome://settings'))" style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--theme-hover, rgba(255,255,255,0.04))'" onmouseout="this.style.background='transparent'">
+                <div style="width: 28px; display: flex; justify-content: center; margin-right: 16px; color: var(--theme-text, #e8eaed);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88C7.55 15.8 9.68 15 12 15s4.45.8 6.14 2.12C16.43 19.18 14.03 20 12 20z"/></svg>
+                </div>
+                <div style="color: var(--theme-text, #e8eaed); font-size: 14px; font-weight: 500;">Use another account</div>
+              </div>
+              <div style="height: 1px; background: var(--theme-border, #3c4043); margin: 8px 0;"></div>
+              
+              <!-- Remove an account -->
+              <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--theme-hover, rgba(255,255,255,0.04))'" onmouseout="this.style.background='transparent'">
+                <div style="width: 28px; display: flex; justify-content: center; margin-right: 16px; color: var(--theme-text, #e8eaed);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15 13H5v-2h10v2zm4-9h-4V3H9v1H5v2h14V4zM7 19c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V7H7v12z"/></svg>
+                </div>
+                <div style="color: var(--theme-text, #e8eaed); font-size: 14px; font-weight: 500;">Remove an account</div>
+              </div>
+              <div style="height: 1px; background: var(--theme-border, #3c4043); margin: 8px 0;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="display: flex; justify-content: space-between; padding: 24px 40px; color: var(--theme-text, #9aa0a6); font-size: 12px; opacity: 0.8;">
+          <div>English (United States) <span style="font-size: 10px; margin-left: 4px;">▼</span></div>
+          <div style="display: flex; gap: 24px;">
+            <span style="cursor: pointer;">Help</span>
+            <span style="cursor: pointer;">Privacy</span>
+            <span style="cursor: pointer;">Terms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Input View -->
+      <div id="viewPasswordInput" class="d-none full-size" style="background: var(--theme-bg, #202124); display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto;">
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px;">
+          <div style="background: var(--theme-bg, #202124); border-radius: 28px; width: 100%; max-width: 1040px; min-height: 400px; display: flex; padding: 48px; box-sizing: border-box;">
+            <!-- Left Side -->
+            <div style="flex: 1; padding-right: 48px; display: flex; flex-direction: column; justify-content: flex-start;">
+              <div class="g-logo big" style="margin-bottom: 24px; text-align: left;">
+                <span class="g-blue" style="font-size: 40px;">G</span>
+              </div>
+              <h1 id="passwordScreenName" style="color: var(--theme-text, #e8eaed); font-size: 36px; font-weight: 400; margin: 0 0 24px 0;">Hi User</h1>
+              <div style="display: inline-flex; align-items: center; border: 1px solid var(--theme-border, #5f6368); border-radius: 16px; padding: 4px 12px 4px 4px; cursor: pointer;" onclick="navigate('chrome://choose-account')">
+                <div id="passwordScreenAvatar" style="width: 24px; height: 24px; border-radius: 50%; background: #00796b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; overflow: hidden;">U</div>
+                <div id="passwordScreenEmail" style="color: var(--theme-text, #e8eaed); font-size: 14px; margin-right: 8px;">user@gmail.com</div>
+                <span style="color: var(--theme-text, #e8eaed); font-size: 10px;">▼</span>
+              </div>
+            </div>
+            <!-- Right Side -->
+            <div style="flex: 1; max-width: 500px; display: flex; flex-direction: column; justify-content: center;">
+              <div style="position: relative; margin-bottom: 16px;">
+                <input type="password" id="loginPasswordInput" placeholder=" " style="width: 100%; box-sizing: border-box; background: transparent; border: 1px solid var(--theme-border, #5f6368); border-radius: 4px; padding: 14px 16px; color: var(--theme-text, #e8eaed); font-size: 16px; outline: none;" onfocus="this.style.borderColor='#8ab4f8'" onblur="this.style.borderColor='var(--theme-border, #5f6368)'">
+                <label style="position: absolute; left: 12px; top: -8px; background: var(--theme-bg, #202124); padding: 0 4px; color: #8ab4f8; font-size: 12px;">Enter your password</label>
+              </div>
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--theme-text, #e8eaed); font-size: 14px; margin-bottom: auto;">
+                <input type="checkbox" onchange="document.getElementById('loginPasswordInput').type = this.checked ? 'text' : 'password'" style="width: 16px; height: 16px; cursor: pointer;">
+                Show password
+              </label>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 48px;">
+                <button onclick="alert('Not implemented')" style="background: transparent; border: none; color: #8ab4f8; font-size: 14px; font-weight: 500; cursor: pointer; padding: 8px;">Try another way</button>
+                <button onclick="performFirebaseSignIn()" style="background: #a8c7fa; border: none; color: #062e6f; padding: 10px 24px; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer;">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="display: flex; justify-content: space-between; padding: 24px 40px; color: var(--theme-text, #9aa0a6); font-size: 12px; opacity: 0.8;">
+          <div>English (United States) <span style="font-size: 10px; margin-left: 4px;">▼</span></div>
+          <div style="display: flex; gap: 24px;">
+            <span style="cursor: pointer;">Help</span>
+            <span style="cursor: pointer;">Privacy</span>
+            <span style="cursor: pointer;">Terms</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="status-bar" id="statusBar">Ready</div>
+
+    <!-- Turn Off Sync Modal -->
+    <div id="turnOffSyncModal" class="d-none" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+        <div style="background: var(--theme-bg, #202124); border: 1px solid var(--theme-border, #3c4043); border-radius: 8px; width: 448px; box-shadow: 0 4px 24px rgba(0,0,0,0.4); display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 24px 24px 0;">
+                <h2 style="margin: 0 0 16px; font-size: 16px; font-weight: 500; color: var(--theme-text, #e8eaed);">Turn off sync and personalisation?</h2>
+                <p style="margin: 0 0 24px; font-size: 14px; color: var(--theme-text, #e8eaed); line-height: 1.5; opacity: 0.9;">This will sign you out of your Google accounts. Your bookmarks, history, passwords and more will no longer be synced.</p>
+            </div>
+            <div style="padding: 0 24px 24px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button onclick="closeTurnOffModal()" style="background: transparent; border: 1px solid var(--theme-border, #5f6368); color: var(--theme-text, #e8eaed); padding: 8px 16px; border-radius: 18px; font-size: 13px; font-weight: 500; cursor: pointer;">Cancel</button>
+                <button onclick="confirmTurnOffSync()" style="background: #a8c7fa; border: none; color: #062e6f; padding: 8px 16px; border-radius: 18px; font-size: 13px; font-weight: 500; cursor: pointer;">Turn off</button>
+            </div>
+            <div style="background: var(--theme-hover, #292a2d); padding: 16px 24px; border-top: 1px solid var(--theme-border, #3c4043); display: flex; align-items: center; justify-content: space-between;">
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--theme-text, #e8eaed); font-size: 13px; opacity: 0.9;">
+                    <input type="checkbox" id="removeDataCheckbox" style="width: 16px; height: 16px; cursor: pointer;">
+                    Remove bookmarks, history, passwords and more from this device
+                </label>
+                <span style="color: #9aa0a6; cursor: pointer; font-size: 18px;">&#x2304;</span>
+            </div>
+        </div>
+    </div>
+  </div>
+  <!-- ===== SCRIPTS ===== -->
+  <script type="module" src="{{ url_for('static', filename='js/tab.js') }}?v=35"></script>
+  <script type="module" src="{{ url_for('static', filename='js/app2.js') }}?v=46"></script>
+</body>
+
+</html>
