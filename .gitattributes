@@ -1,0 +1,4 @@
+# Ignore frontend files in GitHub language statistics so Python shows up as the main language!
+*.html linguist-vendored
+*.css linguist-vendored
+*.js linguist-vendored
