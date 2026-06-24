@@ -8,12 +8,12 @@
 function openGoogleAccount() {
     document.getElementById('settingsMenu')?.classList.remove('open');
     document.getElementById('userMenu')?.classList.remove('open');
-    
+
     // Set dynamic info based on currently logged in user
     let displayName = "Not signed in";
     let displayEmail = "Please sign in to manage your account";
     let avatarHtml = "G";
-    
+
     // Check if signed in
     if (userEmail) {
         // Try to get from firebase auth (if window.auth is populated)
@@ -29,15 +29,15 @@ function openGoogleAccount() {
             }
         }
     }
-    
+
     const acctNameEl = document.getElementById('acctName');
     const acctEmailEl = document.getElementById('acctEmail');
     const acctAvatarEl = document.getElementById('acctAvatar');
-    
-    if(acctNameEl) acctNameEl.textContent = displayName;
-    if(acctEmailEl) acctEmailEl.textContent = displayEmail;
-    if(acctAvatarEl) acctAvatarEl.innerHTML = avatarHtml;
-    
+
+    if (acctNameEl) acctNameEl.textContent = displayName;
+    if (acctEmailEl) acctEmailEl.textContent = displayEmail;
+    if (acctAvatarEl) acctAvatarEl.innerHTML = avatarHtml;
+
     // Update active tab logic if we are integrating with tabs
     const w = window.activeWindow ? window.activeWindow() : null;
     if (w) {
@@ -46,7 +46,7 @@ function openGoogleAccount() {
         tab.title = 'Google Account';
         if (typeof window.renderTabs === 'function') window.renderTabs();
     }
-    
+
     showView('Account');
 }
 
@@ -77,12 +77,12 @@ let draftAvatarUrl = '';
 
 function openCustomiseProfile() {
     document.getElementById('userMenu')?.classList.remove('open');
-    
+
     // Default to active user's values or generic
     let pName = 'Samin';
     let tId = 'default';
     let aUrl = '';
-    
+
     if (userEmail) {
         let p = chrome_profiles.find(x => x.email === userEmail);
         if (p) {
@@ -92,14 +92,14 @@ function openCustomiseProfile() {
             else aUrl = ''; // empty means use original
         }
     }
-    
+
     document.getElementById('customProfileName').value = pName;
     draftThemeId = tId;
     draftAvatarUrl = aUrl;
-    
+
     renderThemes();
     renderAvatars();
-    
+
     const w = window.activeWindow ? window.activeWindow() : null;
     if (w) {
         let tab = w.tabs[w.activeIdx];
@@ -107,7 +107,7 @@ function openCustomiseProfile() {
         tab.title = 'Settings';
         if (typeof window.renderTabs === 'function') window.renderTabs();
     }
-    
+
     showView('CustomiseProfile');
 }
 
@@ -131,7 +131,7 @@ function renderAvatars() {
     const grid = document.getElementById('avatarGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    
+
     // Original Profile Icon logic
     let originalHtml = `<div style="width:100%; height:100%; background:#4285f4; color:#fff; font-size:28px; display:flex; align-items:center; justify-content:center;">G</div>`;
 
@@ -146,7 +146,7 @@ function renderAvatars() {
             }
         }
     }
-    
+
     // Add original item
     const divOrig = document.createElement('div');
     divOrig.className = 'avatar-circle' + (draftAvatarUrl === '' ? ' active' : '');
@@ -166,7 +166,7 @@ function renderAvatars() {
 
 function saveCustomiseProfile() {
     const newName = document.getElementById('customProfileName').value;
-    
+
     if (userEmail) {
         let p = chrome_profiles.find(x => x.email === userEmail);
         if (p) {
@@ -245,7 +245,7 @@ const isIncognito = urlParams.get('incognito') === 'true';
 window.isIncognito = isIncognito;
 const isGuest = urlParams.get('guest') === 'true';
 window.isGuest = isGuest;
-window.openGuestMode = function() {
+window.openGuestMode = function () {
     window.open(window.location.pathname + '?guest=true', '_blank');
 };
 
@@ -286,12 +286,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAp74oulY50Por7tn4ag3odPu8VctUqbIk",
-  authDomain: "chrome-clone-ea10e.firebaseapp.com",
-  projectId: "chrome-clone-ea10e",
-  storageBucket: "chrome-clone-ea10e.firebasestorage.app",
-  messagingSenderId: "911273686203",
-  appId: "1:911273686203:web:3562921a9c5f11de63259e"
+    apiKey: "AIzaSyAp74oulY50Por7tn4ag3odPu8VctUqbIk",
+    authDomain: "chrome-clone-ea10e.firebaseapp.com",
+    projectId: "chrome-clone-ea10e",
+    storageBucket: "chrome-clone-ea10e.firebasestorage.app",
+    messagingSenderId: "911273686203",
+    appId: "1:911273686203:web:3562921a9c5f11de63259e"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -351,16 +351,16 @@ function showProfileSetup() {
 function renderProfileManager() {
     const pmGrid = document.getElementById('pmGrid');
     if (!pmGrid) return;
-    
+
     let html = '';
-    
+
     chrome_profiles.forEach(p => {
         const emailStr = p.email || 'unknown';
         const bg = stringToColor(emailStr);
         const avatarContent = p.customAvatar ? `<img src="${p.customAvatar}">` : (p.photoURL ? `<img src="${p.photoURL}">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bg}">${emailStr[0].toUpperCase()}</div>`);
         const activeBadge = userEmail === p.email ? '<div class="pm-badge">✓</div>' : '';
         const displayName = p.name || emailStr.split('@')[0];
-        
+
         html += `
             <div class="pm-card" onclick="switchProfile('${emailStr}')">
                 <div class="pm-card-menu" title="Remove Profile" onclick="event.stopPropagation(); removeProfile('${emailStr}', event)">✕</div>
@@ -373,14 +373,14 @@ function renderProfileManager() {
             </div>
         `;
     });
-    
+
     html += `
         <div class="pm-card pm-add-card" onclick="showProfileSetup()">
             <div class="pm-add-avatar">+</div>
             <div class="pm-name">Add</div>
         </div>
     `;
-    
+
     pmGrid.innerHTML = html;
 }
 
@@ -389,7 +389,7 @@ async function handleSignInProfile() {
         provider.setCustomParameters({ prompt: 'select_account' });
         await signInWithPopup(auth, provider);
         showView('Newtab');
-    } catch(error) {
+    } catch (error) {
         console.error(error);
     }
 }
@@ -399,9 +399,9 @@ let lpsSelectedColor = '#8ab4f8';
 function handleLocalProfile() {
     const input = document.getElementById('lpsNameInput');
     if (input) input.value = '';
-    
+
     lpsSelectedColor = '#8ab4f8';
-    
+
     // Render the color grid
     const colors = ['#8ab4f8', '#ea4335', '#fbbc05', '#34a853', '#ff6d00', '#f50057', '#d500f9', '#00e5ff', '#1de9b6', '#00e676', '#ffea00', '#76ff03', '#cddc39'];
     const grid = document.getElementById('lpsColorGrid');
@@ -413,27 +413,27 @@ function handleLocalProfile() {
             </div>
         `).join('');
     }
-    
+
     showView('LocalProfileSetup');
 }
 
-window.selectLpsColor = function(color) {
+window.selectLpsColor = function (color) {
     lpsSelectedColor = color;
     handleLocalProfile(); // Re-render grid to update active state
 };
 
-window.completeLocalProfileSetup = function() {
+window.completeLocalProfileSetup = function () {
     const input = document.getElementById('lpsNameInput');
     const name = input ? input.value.trim() : '';
-    
+
     if (!name) {
         alert("Please enter a profile name.");
         if (input) input.focus();
         return;
     }
-    
+
     const fakeEmail = name.toLowerCase().replace(/\\s+/g, '') + '_' + Date.now() + '@local';
-    
+
     chrome_profiles.push({
         email: fakeEmail,
         name: name,
@@ -442,13 +442,13 @@ window.completeLocalProfileSetup = function() {
         customAvatar: ''
     });
     saveProfiles();
-    
+
     switchProfile(fakeEmail);
     showView('Newtab');
 };
 
 function clearProfiles() {
-    if(confirm('Clear all stored profiles?')) {
+    if (confirm('Clear all stored profiles?')) {
         chrome_profiles = [];
         saveProfiles();
         signOut();
@@ -464,18 +464,18 @@ function applyAuthUI(user) {
     const avatarBtn = document.getElementById('avatarBtn');
     const menuPromo = document.getElementById('menuPromo');
     const signInBtnText = document.getElementById('signInBtnText');
-    
+
     const emailToUse = user ? (user.email || (user.uid ? user.uid + '@firebase.local' : null)) : null;
-    
+
     if (user && emailToUse) {
         const initial = emailToUse[0].toUpperCase();
         const name = user.displayName || emailToUse.split('@')[0];
         const isLocal = emailToUse.endsWith('@local');
-        
+
         if (avatarBtn && !isIncognito) avatarBtn.textContent = initial;
         if (menuAvatar) menuAvatar.textContent = initial;
         if (menuName) menuName.textContent = name;
-        
+
         if (isLocal) {
             if (menuEmail) menuEmail.style.display = 'none';
             if (menuPromo) menuPromo.style.display = 'block';
@@ -531,7 +531,7 @@ function applyAuthUI(user) {
         const setAvatar = document.getElementById('settingsProfileAvatar');
         const setName = document.getElementById('settingsProfileName');
         const setStatus = document.getElementById('settingsProfileStatus');
-        
+
         if (setAvatar) {
             if (user.photoURL) {
                 setAvatar.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
@@ -563,7 +563,7 @@ function applyAuthUI(user) {
             menuEmail.textContent = '';
             menuEmail.style.display = 'block';
         }
-        
+
         if (menuPromo) menuPromo.style.display = 'none';
         if (signOutWrap) signOutWrap.style.display = 'none';
         if (signInWrap) signInWrap.style.display = 'block';
@@ -581,28 +581,28 @@ function applyAuthUI(user) {
         if (setAvatar) setAvatar.innerHTML = 'G';
         if (setName) setName.textContent = 'Not signed in';
         if (setStatus) setStatus.innerHTML = '';
-        
+
         const appsAccountAvatar = document.getElementById('googleAppsMenuAccountAvatar');
         if (appsAccountAvatar) {
             appsAccountAvatar.innerHTML = 'U';
             appsAccountAvatar.style.border = '1px solid #202124';
         }
     }
-    
+
     loadHistory();
     renderProfiles();
 }
 
 function renderProfiles() {
     const list = document.getElementById('otherProfilesList');
-    if(!list) return;
-    
+    if (!list) return;
+
     const others = chrome_profiles.filter(p => p.email !== userEmail);
-    if(others.length === 0) {
+    if (others.length === 0) {
         list.innerHTML = '<div style="padding: 8px 16px; color: #5f6368; font-size: 13px;">No other profiles</div>';
         return;
     }
-    
+
     list.innerHTML = others.map(p => {
         const emailStr = p.email || 'unknown';
         const displayName = p.name || emailStr;
@@ -618,8 +618,8 @@ function renderProfiles() {
 }
 
 function removeProfile(email, e) {
-    if(e) e.stopPropagation();
-    if(confirm('Remove this profile from the list?')) {
+    if (e) e.stopPropagation();
+    if (confirm('Remove this profile from the list?')) {
         chrome_profiles = chrome_profiles.filter(p => p.email !== email);
         saveProfiles();
         renderProfiles();
@@ -645,9 +645,9 @@ onAuthStateChanged(auth, (user) => {
             token = user.accessToken;
             userEmail = emailToUse;
             localStorage.setItem('active_profile_email', emailToUse);
-            
+
             const existing = chrome_profiles.find(p => p.email === emailToUse);
-            if(!existing) {
+            if (!existing) {
                 chrome_profiles.push({
                     email: emailToUse,
                     name: user.displayName || 'User',
@@ -659,7 +659,7 @@ onAuthStateChanged(auth, (user) => {
                 existing.photoURL = user.photoURL;
                 saveProfiles();
             }
-            
+
             // Pass a decorated user object so applyAuthUI knows the emailToUse
             applyAuthUI({ ...user, email: emailToUse, displayName: user.displayName, photoURL: user.photoURL, uid: user.uid });
             loadHistory();
@@ -677,7 +677,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 function toggleMenu(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     const menu = document.getElementById('userMenu');
     const wrap = e.target.closest('.user-wrap');
     if (wrap && menu) {
@@ -688,7 +688,7 @@ function toggleMenu(e) {
 }
 
 function toggleSettingsMenu(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     document.getElementById('userMenu')?.classList.remove('open');
     document.getElementById('incognitoMenu')?.classList.remove('open');
     document.getElementById('settingsMenu').classList.toggle('open');
@@ -826,7 +826,7 @@ async function navigate(input) {
 function doNavigate(input, target) {
     activeUrl = input;
     document.getElementById('omnibox').value = isURL(input) ? normURL(input) : input;
-    
+
     const w = window.activeWindow ? window.activeWindow() : null;
     if (w && w.tabs[w.activeIdx]) {
         w.tabs[w.activeIdx].url = input;
@@ -913,15 +913,15 @@ function reloadPage() {
 function showView(name) {
     ['Newtab', 'Results', 'External', 'History', 'Bookmarks', 'Account', 'CustomiseProfile', 'ProfileManager', 'ProfileSetup', 'LocalProfileSetup', 'GuestNewtab', 'ChooseAccount', 'PasswordInput', 'Images', 'GoogleSignIn', 'Settings'].forEach(v => {
         const el = document.getElementById('view' + v);
-        if(el) {
+        if (el) {
             el.style.display = 'none';
             el.classList.add('d-none');
         }
     });
-    
+
     if (name === 'Newtab') {
         const nt = document.getElementById('viewNewtab');
-        if(nt) {
+        if (nt) {
             nt.style.display = 'block';
             nt.classList.remove('d-none');
         }
@@ -935,7 +935,7 @@ function showView(name) {
         }
     } else {
         const el = document.getElementById('view' + name);
-        if(el) {
+        if (el) {
             if (name === 'Settings') {
                 el.style.display = 'flex';
             } else {
@@ -954,13 +954,13 @@ function showExternal(url) {
     showView('External');
     const w = window.activeWindow ? window.activeWindow() : null;
     if (!w) return;
-    
+
     const tab = w.tabs[w.activeIdx];
     if (!tab.id) tab.id = Math.random().toString(36).substr(2, 9);
-    
+
     // Hide all iframes
     Object.values(tabIframes).forEach(f => f.style.display = 'none');
-    
+
     let iframe = tabIframes[tab.id];
     if (!iframe) {
         iframe = document.createElement('iframe');
@@ -969,9 +969,9 @@ function showExternal(url) {
         document.getElementById('viewExternal').appendChild(iframe);
         tabIframes[tab.id] = iframe;
     }
-    
+
     iframe.style.display = 'block';
-    
+
     const domain = getDomain(url);
     if (UNPROXYABLE_DOMAINS.some(d => domain.includes(d))) {
         if (iframe.getAttribute('data-url') !== url) {
@@ -982,7 +982,7 @@ function showExternal(url) {
         setStatus('Opened in external tab');
         return;
     }
-    
+
     if (domain.includes('eduboard.uit.edu')) {
         let path = new URL(url).pathname + new URL(url).search;
         let finalUrl = '/eduboard' + path;
@@ -996,11 +996,11 @@ function showExternal(url) {
         }
         return;
     }
-    
+
     // Load directly if it's a known domain that doesn't need proxying and breaks with <base> injection
     const DIRECT_DOMAINS = [];
     const isDirect = DIRECT_DOMAINS.some(d => domain.includes(d));
-    
+
     // Only set src if it changed, to avoid reloading on tab switch
     const finalUrl = isDirect ? url : '/api/proxy?url=' + encodeURIComponent(url);
     if (iframe.getAttribute('data-url') !== url) {
@@ -1021,30 +1021,30 @@ async function showResults(query, target) {
     document.querySelector('.results-page').style.maxWidth = '700px';
     document.getElementById('resultList').style.maxWidth = '652px';
     document.getElementById('resultList').innerHTML = '';
-    
+
     // Sync UI with 'all' tab state
     window.currentSearchTab = 'all';
     const input = document.getElementById('resultsSearchInput');
-    if(input) input.value = query;
-    
+    if (input) input.value = query;
+
     const tabs = document.querySelectorAll('#resultsTabsNav .result-tab');
-    if(tabs.length > 0) {
+    if (tabs.length > 0) {
         tabs.forEach(t => {
             t.classList.remove('active');
             t.style.borderBottom = '3px solid transparent';
             t.style.color = '#5f6368';
         });
         const allTab = Array.from(tabs).find(t => t.innerText.toLowerCase() === 'all');
-        if(allTab) {
+        if (allTab) {
             allTab.classList.add('active');
             allTab.style.borderBottom = '3px solid #1a73e8';
             allTab.style.color = '#1a73e8';
         }
     }
-    
+
     const startTime = Date.now();
     const lq = query.toLowerCase().trim();
-    
+
     // Knowledge Panel
     let kpBuilt = false;
     if (lq.includes('weather')) {
@@ -1063,18 +1063,18 @@ async function showResults(query, target) {
             kpBuilt = await buildDuckDuckGoKP(lq);
         }
     }
-    
+
     if (!kpBuilt) {
         document.getElementById('knowledgePanel').innerHTML = '';
     }
-    
+
     await buildDynamicResults(query);
-    
+
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     const n = Math.floor(Math.random() * 900 + 100);
     document.getElementById('resultStats').textContent =
         `About ${n},000,000 results (${elapsed} seconds)`;
-        
+
     setStatus('Ready');
 }
 
@@ -1192,16 +1192,16 @@ async function buildCryptoKP() {
 async function buildDynamicResults(query) {
     const results = [];
     const capQuery = query.charAt(0).toUpperCase() + query.slice(1);
-    
+
     // Always add Official Site
     const qDomain = query.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
     if (qDomain !== '.com') {
         results.push({ d: qDomain, t: `${capQuery} - Official Site`, s: `Welcome to the official website for ${capQuery}. Explore products, services, and the latest information.` });
     }
-    
+
     // Add YouTube Search Link (For Dramas, Videos, Music)
     results.push({ d: `youtube.com/results?search_query=${encodeURIComponent(query)}`, t: `${capQuery} - YouTube Search`, s: `Watch videos, dramas, and music related to ${capQuery} on YouTube.` });
-    
+
     // Add Social Media Links
     const socialQuery = query.toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (socialQuery) {
@@ -1220,10 +1220,10 @@ async function buildDynamicResults(query) {
                 s: item.snippet || ''
             });
         }
-    } catch(e) {
+    } catch (e) {
         console.error("Search engine API failed:", e);
     }
-    
+
     document.getElementById('resultList').innerHTML = results.map(r => `
         <div class="result-item">
             <div class="result-domain">${r.d.split('/')[0]}</div>
@@ -1349,34 +1349,34 @@ function showHistoryView() {
 
 function renderHistory() {
     const container = document.getElementById('historyListContent');
-    if(!container) return;
-    
-    if(chrome_history.length === 0) {
+    if (!container) return;
+
+    if (chrome_history.length === 0) {
         container.innerHTML = '<div style="padding: 24px 0; color: #5f6368; text-align: center;">Your browsing history appears here</div>';
         return;
     }
-    
+
     const groups = {};
     chrome_history.forEach(item => {
         const d = new Date(item.timestamp);
         let dateStr = d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        
+
         const today = new Date();
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         if (d.toDateString() === today.toDateString()) {
             dateStr = "Today - " + dateStr;
         } else if (d.toDateString() === yesterday.toDateString()) {
             dateStr = "Yesterday - " + dateStr;
         }
-        
-        if(!groups[dateStr]) groups[dateStr] = [];
+
+        if (!groups[dateStr]) groups[dateStr] = [];
         groups[dateStr].push(item);
     });
-    
+
     let html = '';
-    for(const date in groups) {
+    for (const date in groups) {
         html += `<div class="hist-date-group">${date}</div>`;
         groups[date].forEach(item => {
             const timeStr = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1402,20 +1402,20 @@ function filterHistory(query) {
         renderHistory();
         return;
     }
-    
+
     const container = document.getElementById('historyListContent');
-    if(!container) return;
-    
-    const filtered = chrome_history.filter(item => 
-        item.query.toLowerCase().includes(q) || 
+    if (!container) return;
+
+    const filtered = chrome_history.filter(item =>
+        item.query.toLowerCase().includes(q) ||
         item.url.toLowerCase().includes(q)
     );
-    
-    if(filtered.length === 0) {
+
+    if (filtered.length === 0) {
         container.innerHTML = '<div style="padding: 24px 0; color: #5f6368; text-align: center;">No search results found</div>';
         return;
     }
-    
+
     let html = `<div class="hist-date-group">Search Results</div>`;
     filtered.forEach(item => {
         const timeStr = new Date(item.timestamp).toLocaleDateString() + ' ' + new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1439,7 +1439,7 @@ let currentClearTimeRange = 'all';
 function setTimeRange(range) {
     currentClearTimeRange = range;
     document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-    if(event && event.target && event.target.tagName === 'BUTTON') event.target.classList.add('active');
+    if (event && event.target && event.target.tagName === 'BUTTON') event.target.classList.add('active');
     document.getElementById('clearTimeRange').value = range === 'all' ? 'all' : 'all';
 }
 
@@ -1453,7 +1453,7 @@ function hideClearDataModal() {
 
 function clearBrowsingData() {
     const historyChecked = document.getElementById('cbHistory').checked;
-    
+
     if (historyChecked) {
         if (currentClearTimeRange === 'all') {
             chrome_history = [];
@@ -1464,13 +1464,13 @@ function clearBrowsingData() {
             if (currentClearTimeRange === '1h') cutoff = now - 60 * 60 * 1000;
             if (currentClearTimeRange === '24h') cutoff = now - 24 * 60 * 60 * 1000;
             if (currentClearTimeRange === '7d') cutoff = now - 7 * 24 * 60 * 60 * 1000;
-            
+
             chrome_history = chrome_history.filter(item => item.timestamp < cutoff);
         }
         saveHistory();
         renderHistory();
     }
-    
+
     hideClearDataModal();
 }
 
@@ -1514,7 +1514,7 @@ function init() {
         btn.style.width = 'auto';
         btn.style.padding = '0 12px';
         btn.onclick = (e) => {
-            if(e) e.stopPropagation();
+            if (e) e.stopPropagation();
             document.getElementById('settingsMenu').classList.remove('open');
             document.getElementById('guestMenu').classList.toggle('open');
         };
@@ -1534,7 +1534,7 @@ function init() {
         btn.style.width = 'auto';
         btn.style.padding = '0 12px';
         btn.onclick = (e) => {
-            if(e) e.stopPropagation();
+            if (e) e.stopPropagation();
             document.getElementById('settingsMenu').classList.remove('open');
             document.getElementById('incognitoMenu').classList.toggle('open');
         };
@@ -1563,13 +1563,13 @@ function init() {
             showView('Newtab');
         }
     }
-    
+
     if (!isIncognito) {
         // loadWeather();
         // loadCrypto();
         // loadNews();
     }
-    
+
     // Initialize tabs from tabs.js
     if (typeof window.renderTabs === 'function') {
         // Add default tab if none exist
@@ -1583,7 +1583,7 @@ function init() {
             window.showCurrentPage();
         }
     }
-    
+
     extendSession();
     setStatus('Ready');
     console.log('🚀 ChromeClone initialized!');
@@ -1591,10 +1591,10 @@ function init() {
 
 // ─── EXPOSE GLOBALLY ──────────────────────────────────────────
 // Expose functions for tabs.js and HTML onclick
-window.openNewWindow = function() {
+window.openNewWindow = function () {
     window.open(window.location.href.split('?')[0], '_blank', 'width=1100,height=800');
 };
-window.openIncognitoWindow = function() {
+window.openIncognitoWindow = function () {
     window.open(window.location.href.split('?')[0] + '?incognito=true', '_blank', 'width=1100,height=800');
 };
 window.navigate = navigate;
@@ -1645,13 +1645,13 @@ if (document.readyState === 'loading') {
 }
 // Google Apps Menu
 function toggleGoogleAppsMenu(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     const menu = document.getElementById('googleAppsMenu');
     const wrap = e.target.closest('.user-wrap');
     if (wrap && menu) {
         wrap.appendChild(menu);
     }
-    if(menu) {
+    if (menu) {
         menu.classList.toggle('d-none');
     }
 }
@@ -1667,7 +1667,7 @@ function loadBookmarks() {
     const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
     bookmarks = JSON.parse(localStorage.getItem(key)) || [];
     renderBookmarksBar();
-    if(document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
+    if (document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
         renderBookmarksManager();
     }
 }
@@ -1676,7 +1676,7 @@ function saveBookmarks() {
     const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
     localStorage.setItem(key, JSON.stringify(bookmarks));
     renderBookmarksBar();
-    if(document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
+    if (document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
         renderBookmarksManager();
     }
 }
@@ -1686,7 +1686,7 @@ function getActiveTabDetails() {
     let title = "New Tab";
     let url = "";
     let favicon = "🌐";
-    
+
     if (w && w.tabs[w.activeIdx]) {
         title = w.tabs[w.activeIdx].title;
         url = w.tabs[w.activeIdx].url;
@@ -1698,21 +1698,21 @@ function getActiveTabDetails() {
 }
 
 function toggleBookmarkPopup(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     const popup = document.getElementById('bookmarkPopup');
-    if(!popup) return;
-    
+    if (!popup) return;
+
     if (popup.classList.contains('d-none')) {
         const details = getActiveTabDetails();
         document.getElementById('bookmarkNameInput').value = details.title;
-        
+
         // check if already bookmarked
         const existing = bookmarks.find(b => b.url === details.url);
-        if(existing) {
+        if (existing) {
             document.getElementById('bookmarkNameInput').value = existing.title;
             document.getElementById('bookmarkFolderSelect').value = existing.folder;
         }
-        
+
         popup.classList.remove('d-none');
         popup.classList.add('open');
         document.getElementById('bookmarkStar').classList.add('filled');
@@ -1723,15 +1723,15 @@ function toggleBookmarkPopup(e) {
 
 function closeBookmarkPopup() {
     const popup = document.getElementById('bookmarkPopup');
-    if(popup) {
+    if (popup) {
         popup.classList.add('d-none');
         popup.classList.remove('open');
     }
-    
+
     // Check if current tab is actually bookmarked to set star filled state
     const details = getActiveTabDetails();
     const existing = bookmarks.find(b => b.url === details.url);
-    if(existing) {
+    if (existing) {
         document.getElementById('bookmarkStar').classList.add('filled');
     } else {
         document.getElementById('bookmarkStar').classList.remove('filled');
@@ -1742,9 +1742,9 @@ function saveCurrentBookmark() {
     const title = document.getElementById('bookmarkNameInput').value || 'Bookmark';
     const folder = document.getElementById('bookmarkFolderSelect').value || 'Bookmarks bar';
     const details = getActiveTabDetails();
-    
-    if(!details.url) { closeBookmarkPopup(); return; }
-    
+
+    if (!details.url) { closeBookmarkPopup(); return; }
+
     const existingIdx = bookmarks.findIndex(b => b.url === details.url);
     if (existingIdx > -1) {
         bookmarks[existingIdx].title = title;
@@ -1759,7 +1759,7 @@ function saveCurrentBookmark() {
             dateAdded: new Date().toISOString()
         });
     }
-    
+
     saveBookmarks();
     closeBookmarkPopup();
 }
@@ -1773,15 +1773,15 @@ function removeCurrentBookmark() {
 
 function renderBookmarksBar() {
     const bar = document.getElementById('bookmarksBar');
-    if(!bar) return;
-    
+    if (!bar) return;
+
     const barBookmarks = bookmarks.filter(b => b.folder === 'Bookmarks bar');
     if (barBookmarks.length === 0) {
         bar.classList.add('d-none');
         bar.innerHTML = '';
         return;
     }
-    
+
     bar.classList.remove('d-none');
     let html = '';
     barBookmarks.forEach(b => {
@@ -1804,7 +1804,7 @@ function switchBookmarkTab(tabName, el) {
         e.style.background = 'transparent';
         e.style.color = 'inherit';
     });
-    if(el) {
+    if (el) {
         el.classList.add('active');
         el.style.background = '#8ab4f8';
         el.style.color = '#202124';
@@ -1814,20 +1814,20 @@ function switchBookmarkTab(tabName, el) {
 
 function renderBookmarksManager() {
     const listEl = document.getElementById('bookmarkManagerList');
-    if(!listEl) return;
-    
+    if (!listEl) return;
+
     const q = (document.getElementById('bookmarkSearchInput')?.value || '').toLowerCase();
-    
+
     let filtered = bookmarks.filter(b => b.folder === currentBookmarkTab);
     if (q) {
         filtered = filtered.filter(b => (b.title || '').toLowerCase().includes(q) || (b.url || '').toLowerCase().includes(q));
     }
-    
+
     if (filtered.length === 0) {
         listEl.innerHTML = `<div style="text-align:center; padding: 40px; color: #9aa0a6;">No bookmarks found</div>`;
         return;
     }
-    
+
     let html = '';
     filtered.forEach(b => {
         const titleStr = b.title || 'Bookmark';
@@ -1855,10 +1855,10 @@ function renderBookmarksManager() {
 function toggleBookmarkActionMenu(e, id) {
     e.stopPropagation();
     document.querySelectorAll('.bm-action-menu').forEach(el => {
-        if(el.id !== `bm-action-${id}`) el.classList.add('d-none');
+        if (el.id !== `bm-action-${id}`) el.classList.add('d-none');
     });
     const menu = document.getElementById(`bm-action-${id}`);
-    if(menu) menu.classList.toggle('d-none');
+    if (menu) menu.classList.toggle('d-none');
 }
 
 function deleteBookmark(id) {
@@ -1871,7 +1871,7 @@ function deleteBookmark(id) {
 document.addEventListener('click', (e) => {
     document.querySelectorAll('.bm-action-menu').forEach(el => el.classList.add('d-none'));
     const popup = document.getElementById('bookmarkPopup');
-    if(popup && !popup.classList.contains('d-none') && !e.target.closest('#bookmarkPopup') && !e.target.closest('#bookmarkStar')) {
+    if (popup && !popup.classList.contains('d-none') && !e.target.closest('#bookmarkPopup') && !e.target.closest('#bookmarkStar')) {
         closeBookmarkPopup();
     }
 });
@@ -1880,7 +1880,7 @@ document.addEventListener('click', (e) => {
 window.addEventListener('load', () => {
     renderBookmarksBar();
     const star = document.getElementById('bookmarkStar');
-    if(star) {
+    if (star) {
         star.addEventListener('click', (e) => {
             e.stopPropagation();
             toggleBookmarkPopup();
@@ -1890,14 +1890,14 @@ window.addEventListener('load', () => {
 
 // Update star when navigating
 const origUpdateTabBM = window.updateTab;
-window.updateTab = function(icon, title) {
-    if(origUpdateTabBM) origUpdateTabBM(icon, title);
-    
+window.updateTab = function (icon, title) {
+    if (origUpdateTabBM) origUpdateTabBM(icon, title);
+
     const url = document.getElementById('omnibox').value;
     const existing = bookmarks.find(b => b.url === url);
     const star = document.getElementById('bookmarkStar');
-    if(star) {
-        if(existing) star.classList.add('filled');
+    if (star) {
+        if (existing) star.classList.add('filled');
         else star.classList.remove('filled');
     }
 };
@@ -1912,11 +1912,11 @@ window.toggleBookmarkActionMenu = toggleBookmarkActionMenu;
 window.deleteBookmark = deleteBookmark;
 
 // Close menu when clicking outside
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const menu = document.getElementById('googleAppsMenu');
     const isBtnClick = e.target.closest('[onclick*="toggleGoogleAppsMenu"]') !== null;
-    if(menu && !menu.classList.contains('d-none')) {
-        if(!menu.contains(e.target) && !isBtnClick) {
+    if (menu && !menu.classList.contains('d-none')) {
+        if (!menu.contains(e.target) && !isBtnClick) {
             menu.classList.add('d-none');
         }
     }
@@ -1924,13 +1924,13 @@ document.addEventListener('click', function(e) {
 
 window.currentSearchTab = 'all';
 
-window.handleResultsKey = function(e) {
+window.handleResultsKey = function (e) {
     if (e.key === 'Enter') {
         executeResultsSearch();
     }
 };
 
-window.executeResultsSearch = function() {
+window.executeResultsSearch = function () {
     const input = document.getElementById('resultsSearchInput');
     const val = input ? input.value.trim() : '';
     if (val) {
@@ -1939,9 +1939,9 @@ window.executeResultsSearch = function() {
     }
 };
 
-window.switchSearchTab = function(tabName, overrideQuery = null) {
+window.switchSearchTab = function (tabName, overrideQuery = null) {
     window.currentSearchTab = tabName;
-    
+
     // Update active tab styling
     const tabs = document.querySelectorAll('#resultsTabsNav .result-tab');
     tabs.forEach(t => {
@@ -1950,7 +1950,7 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
         t.style.color = '#5f6368';
     });
     const clickedTab = Array.from(tabs).find(t => t.innerText.toLowerCase().includes(tabName.replace('ai', 'ai mode').toLowerCase()));
-    if(clickedTab) {
+    if (clickedTab) {
         clickedTab.classList.add('active');
         clickedTab.style.borderBottom = '3px solid #1a73e8';
         clickedTab.style.color = '#1a73e8';
@@ -1958,35 +1958,35 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
 
     const input = document.getElementById('resultsSearchInput');
     const query = overrideQuery || (input ? input.value.trim() : '');
-    if(!query) return;
-    
+    if (!query) return;
+
     if (input && input.value !== query) {
         input.value = query;
     }
-    
+
     updateTab('Search: ' + query, 'Search: ' + query);
-    
+
     const resultList = document.getElementById('resultList');
     const resultsPage = document.querySelector('.results-page');
     document.getElementById('knowledgePanel').innerHTML = '';
     document.getElementById('resultStats').textContent = '';
-    
+
     if (tabName === 'all') {
         // Normal Search
         resultsPage.style.maxWidth = '700px';
         resultList.style.maxWidth = '652px';
         showResults(query, ''); // triggers /api/search
-        
+
     } else if (tabName === 'images') {
         // Image Search
         resultsPage.style.maxWidth = '100%';
         resultList.style.maxWidth = '100%';
         resultList.innerHTML = '<div style="padding: 20px;">Searching images for <b>' + query + '</b>...</div>';
-        
+
         fetch('/api/image-search?q=' + encodeURIComponent(query))
             .then(res => res.json())
             .then(data => {
-                if(data.length === 0) {
+                if (data.length === 0) {
                     resultList.innerHTML = '<div style="padding: 20px;">No images found.</div>';
                     return;
                 }
@@ -2006,17 +2006,17 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
             }).catch(err => {
                 resultList.innerHTML = '<div style="padding: 20px; color: red;">Failed to fetch images</div>';
             });
-            
+
     } else if (tabName === 'news') {
         // News Search
         resultsPage.style.maxWidth = '700px';
         resultList.style.maxWidth = '652px';
         resultList.innerHTML = '<div style="padding: 20px;">Fetching latest news for <b>' + query + '</b>...</div>';
-        
+
         fetch('/api/news?q=' + encodeURIComponent(query))
             .then(res => res.json())
             .then(data => {
-                if(data.length === 0) {
+                if (data.length === 0) {
                     resultList.innerHTML = '<div style="padding: 20px;">No news found.</div>';
                     return;
                 }
@@ -2032,17 +2032,17 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
             }).catch(err => {
                 resultList.innerHTML = '<div style="padding: 20px; color: red;">Failed to fetch news</div>';
             });
-            
+
     } else if (tabName === 'videos') {
         // Video Search
         resultsPage.style.maxWidth = '700px';
         resultList.style.maxWidth = '652px';
         resultList.innerHTML = '<div style="padding: 20px;">Searching videos for <b>' + query + '</b>...</div>';
-        
+
         fetch('/api/video?q=' + encodeURIComponent(query))
             .then(res => res.json())
             .then(data => {
-                if(data.length === 0) {
+                if (data.length === 0) {
                     resultList.innerHTML = '<div style="padding: 20px;">No videos found.</div>';
                     return;
                 }
@@ -2062,7 +2062,7 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
             }).catch(err => {
                 resultList.innerHTML = '<div style="padding: 20px; color: red;">Failed to fetch videos</div>';
             });
-            
+
     } else if (tabName === 'ai') {
         // AI Mode Search
         resultsPage.style.maxWidth = '700px';
@@ -2075,7 +2075,7 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
                 </div>
                 <div class="spinner" style="margin: 0;"></div>
             </div>`;
-            
+
         fetch('/api/ai?q=' + encodeURIComponent(query))
             .then(res => res.json())
             .then(data => {
@@ -2093,7 +2093,7 @@ window.switchSearchTab = function(tabName, overrideQuery = null) {
     }
 };
 
-window.executeImagesSearch = function() {
+window.executeImagesSearch = function () {
     const input = document.getElementById('imagesSearchInput');
     const val = input ? input.value.trim() : '';
     if (val) {
@@ -2102,11 +2102,11 @@ window.executeImagesSearch = function() {
         document.querySelector('.results-page').style.maxWidth = '100%';
         document.getElementById('resultList').style.maxWidth = '100%';
         document.getElementById('resultList').innerHTML = '<div style="padding: 20px;">Searching images for <b>' + val + '</b>...</div>';
-        
+
         fetch('/api/image-search?q=' + encodeURIComponent(val))
             .then(res => res.json())
             .then(data => {
-                if(data.length === 0) {
+                if (data.length === 0) {
                     document.getElementById('resultList').innerHTML = '<div style="padding: 20px;">No images found.</div>';
                     return;
                 }
@@ -2130,7 +2130,7 @@ window.executeImagesSearch = function() {
     }
 };
 
-window.handleImagesKey = function(e) {
+window.handleImagesKey = function (e) {
     if (e.key === 'Enter') {
         executeImagesSearch();
     }
@@ -2156,7 +2156,7 @@ function updateGoogleNavState() {
     const unauthNavs = [document.getElementById('googleNavUnauth'), document.getElementById('googleNavUnauthImages')];
     const authNavs = [document.getElementById('googleNavAuth'), document.getElementById('googleNavAuthImages')];
     const avatars = [document.getElementById('googleNavAvatar'), document.getElementById('googleNavAvatarImages')];
-    
+
     if (user || isDemo) {
         const uEmail = user ? user.email : (window.lastGoogleUserEmail || 'saminsarfaraz949@gmail.com');
         const uName = user ? user.displayName : (window.lastGoogleUserName || 'Samin Samin');
@@ -2179,7 +2179,7 @@ function updateGoogleNavState() {
         const setAvatar = document.getElementById('settingsProfileAvatar');
         const setName = document.getElementById('settingsProfileName');
         const setStatus = document.getElementById('settingsProfileStatus');
-        
+
         if (setAvatar) {
             if (uPhoto) {
                 setAvatar.innerHTML = `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
@@ -2190,14 +2190,14 @@ function updateGoogleNavState() {
         window.lastGoogleUserName = uName || 'Samin Samin';
         window.lastGoogleUserEmail = uEmail;
         window.lastGoogleUserPhotoURL = uPhoto;
-        
+
         if (setName) setName.textContent = window.lastGoogleUserName;
         if (setStatus) setStatus.innerHTML = `<span style="background:#34a853; width:12px; height:12px; border-radius:50%; display:inline-block;"></span> Syncing to ${window.lastGoogleUserEmail}`;
-        
+
     } else {
         unauthNavs.forEach(el => el && el.classList.remove('d-none'));
         authNavs.forEach(el => el && el.classList.add('d-none'));
-        
+
         const setName = document.getElementById('settingsProfileName');
         const setStatus = document.getElementById('settingsProfileStatus');
         const setAvatar = document.getElementById('settingsProfileAvatar');
@@ -2222,7 +2222,7 @@ window.updateGoogleNavState = updateGoogleNavState;
 window.googleSignOut = googleSignOut;
 window.showSettingsView = showSettingsView;
 
-window.openTurnOffModal = function() {
+window.openTurnOffModal = function () {
     const modal = document.getElementById('turnOffSyncModal');
     if (modal) {
         modal.classList.remove('d-none');
@@ -2235,12 +2235,12 @@ window.openTurnOffModal = function() {
     }
 };
 
-window.closeTurnOffModal = function() {
+window.closeTurnOffModal = function () {
     const modal = document.getElementById('turnOffSyncModal');
     if (modal) modal.classList.add('d-none');
 };
 
-window.confirmTurnOffSync = async function() {
+window.confirmTurnOffSync = async function () {
     const cb = document.getElementById('removeDataCheckbox');
     if (cb && cb.checked) {
         localStorage.removeItem('chrome_history');
@@ -2249,12 +2249,12 @@ window.confirmTurnOffSync = async function() {
         history = [];
         bookmarks = [];
     }
-    
+
     window.closeTurnOffModal();
     if (window.signOut) {
         await window.signOut();
     }
-    
+
     // Update choose account UI with cached user details
     const caName = document.getElementById('chooseAccountName');
     const caEmail = document.getElementById('chooseAccountEmail');
@@ -2262,17 +2262,17 @@ window.confirmTurnOffSync = async function() {
     const uName = window.lastGoogleUserName || 'Samin Samin';
     const uEmail = window.lastGoogleUserEmail || 'saminsarfaraz949@gmail.com';
     const uPhoto = window.lastGoogleUserPhotoURL;
-    
-    if(caName) caName.innerText = uName;
-    if(caEmail) caEmail.innerText = uEmail;
-    if(caAvatar) {
-        if(uPhoto) {
+
+    if (caName) caName.innerText = uName;
+    if (caEmail) caEmail.innerText = uEmail;
+    if (caAvatar) {
+        if (uPhoto) {
             caAvatar.innerHTML = `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
         } else if (uName.length > 0) {
             caAvatar.innerHTML = uName.charAt(0).toUpperCase();
         }
     }
-    
+
     // Switch to choose account view
     navigate('chrome://choose-account');
     if (window.updateGoogleNavState) {
@@ -2280,36 +2280,36 @@ window.confirmTurnOffSync = async function() {
     }
 };
 
-window.openPasswordInput = function() {
+window.openPasswordInput = function () {
     const uName = window.lastGoogleUserName || 'Samin Samin';
     const uEmail = window.lastGoogleUserEmail || 'saminsarfaraz949@gmail.com';
     const uPhoto = window.lastGoogleUserPhotoURL;
-    
-    const avatarHTML = uPhoto 
-        ? `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">` 
+
+    const avatarHTML = uPhoto
+        ? `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`
         : (uName.length > 0 ? uName.charAt(0).toUpperCase() : 'U');
 
     // Populate Password Input Screen
     const pwName = document.getElementById('passwordScreenName');
     const pwEmail = document.getElementById('passwordScreenEmail');
     const pwAvatar = document.getElementById('passwordScreenAvatar');
-    if(pwName) pwName.innerText = `Hi ${uName.split(' ')[0]}`;
-    if(pwEmail) pwEmail.innerText = uEmail;
-    if(pwAvatar) pwAvatar.innerHTML = avatarHTML;
+    if (pwName) pwName.innerText = `Hi ${uName.split(' ')[0]}`;
+    if (pwEmail) pwEmail.innerText = uEmail;
+    if (pwAvatar) pwAvatar.innerHTML = avatarHTML;
 
     document.getElementById('loginPasswordInput').value = '';
 
     navigate('chrome://password-input');
 };
 
-window.performFirebaseSignIn = async function() {
+window.performFirebaseSignIn = async function () {
     const pwd = document.getElementById('loginPasswordInput').value;
     const email = window.lastGoogleUserEmail;
-    if(!pwd || !email) {
+    if (!pwd || !email) {
         alert('Please enter your password');
         return;
     }
-    
+
     try {
         await signInWithEmailAndPassword(auth, email, pwd);
         // On success, redirect back to settings
@@ -2318,7 +2318,7 @@ window.performFirebaseSignIn = async function() {
         if (window.updateGoogleNavState) {
             window.updateGoogleNavState();
         }
-    } catch(err) {
+    } catch (err) {
         // If the user doesn't have a password set (because it's a Google account),
         // we intercept the error and try to create the password account on the fly!
         try {
@@ -2328,7 +2328,7 @@ window.performFirebaseSignIn = async function() {
             if (window.updateGoogleNavState) {
                 window.updateGoogleNavState();
             }
-        } catch(createErr) {
+        } catch (createErr) {
             // If Firebase is being extremely stubborn (e.g. 'email-already-in-use'),
             // we will bypass the restriction for the sake of a flawless UI demo.
             console.log('Firebase refused to link account:', createErr.message);
