@@ -57,3 +57,8 @@ node tests/run_e2e.js
 - **Auth:** Firebase Authentication
 - **Testing:** Node.js, Puppeteer, Jest
 - **Deployment:** Docker
+
+
+## License
+
+Distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
