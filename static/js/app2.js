@@ -1637,12 +1637,7 @@ window.openGoogleAccount = openGoogleAccount;
 window.openCustomiseProfile = openCustomiseProfile;
 window.saveCustomiseProfile = saveCustomiseProfile;
 
-// ─── RUN ──────────────────────────────────────────────────────
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// ─── RUN block moved to bottom ──────────────────────────────────
 // Google Apps Menu
 function toggleGoogleAppsMenu(e) {
     if (e) e.stopPropagation();
@@ -2344,3 +2339,10 @@ window.performFirebaseSignIn = async function () {
         }
     }
 };
+
+// ─── RUN ──────────────────────────────────────────────────────
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

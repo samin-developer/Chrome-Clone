@@ -17,9 +17,18 @@ function createWindow() {
   app.userAgentFallback = USER_AGENT;
   mainWindow.webContents.userAgent = USER_AGENT;
 
-  // Allow Firebase Auth Popups to open
+  // Allow popups (like Incognito and Google Auth) to open cleanly
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    return { action: 'allow' };
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        autoHideMenuBar: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
+        }
+      }
+    };
   });
 
   // Load the Render URL
