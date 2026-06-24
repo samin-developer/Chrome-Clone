@@ -319,6 +319,7 @@ async function switchProfile(email) {
         if (p) {
             userEmail = p.email;
             localStorage.setItem('active_profile_email', p.email);
+            loadBookmarks();
             applyAuthUI({ email: p.email, displayName: p.name, photoURL: p.customAvatar || p.photoURL });
             applyProfileSettings(p);
             document.getElementById('userMenu').classList.remove('open');
@@ -662,6 +663,7 @@ onAuthStateChanged(auth, (user) => {
             // Pass a decorated user object so applyAuthUI knows the emailToUse
             applyAuthUI({ ...user, email: emailToUse, displayName: user.displayName, photoURL: user.photoURL, uid: user.uid });
             loadHistory();
+            loadBookmarks();
         }
     } else {
         if (!userEmail || !userEmail.endsWith('@local')) {
@@ -669,6 +671,7 @@ onAuthStateChanged(auth, (user) => {
             localStorage.removeItem('active_profile_email');
             applyAuthUI(null);
             loadHistory();
+            loadBookmarks();
         }
     }
 });
@@ -1499,6 +1502,7 @@ setInterval(checkSession, 30000);
 // ─── INIT ─────────────────────────────────────────────────────
 function init() {
     userEmail = localStorage.getItem('active_profile_email');
+    loadBookmarks();
 
     if (isGuest) {
         const btn = document.getElementById('avatarBtn');
@@ -1656,11 +1660,21 @@ window.toggleGoogleAppsMenu = toggleGoogleAppsMenu;
 // ==========================================
 // Bookmarks Logic
 // ==========================================
-let bookmarks = JSON.parse(localStorage.getItem('chrome_bookmarks')) || [];
+let bookmarks = [];
 let currentBookmarkTab = 'Bookmarks bar';
 
+function loadBookmarks() {
+    const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+    bookmarks = JSON.parse(localStorage.getItem(key)) || [];
+    renderBookmarksBar();
+    if(document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
+        renderBookmarksManager();
+    }
+}
+
 function saveBookmarks() {
-    localStorage.setItem('chrome_bookmarks', JSON.stringify(bookmarks));
+    const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+    localStorage.setItem(key, JSON.stringify(bookmarks));
     renderBookmarksBar();
     if(document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
         renderBookmarksManager();
@@ -2125,7 +2139,9 @@ window.handleImagesKey = function(e) {
 // --- GOOGLE SIGN IN FIREBASE INTEGRATION --------------------------------
 
 async function googleSignOut() {
+    window.demoBypassLoggedIn = false;
     await fbSignOut(auth);
+    updateGoogleNavState();
 }
 
 // Hook into the main auth state listener to update the Google Nav
@@ -2136,19 +2152,24 @@ onAuthStateChanged(auth, (user) => {
 function updateGoogleNavState() {
     // Wait for auth to resolve or use current user
     const user = auth.currentUser;
+    const isDemo = window.demoBypassLoggedIn;
     const unauthNavs = [document.getElementById('googleNavUnauth'), document.getElementById('googleNavUnauthImages')];
     const authNavs = [document.getElementById('googleNavAuth'), document.getElementById('googleNavAuthImages')];
     const avatars = [document.getElementById('googleNavAvatar'), document.getElementById('googleNavAvatarImages')];
     
-    if (user) {
+    if (user || isDemo) {
+        const uEmail = user ? user.email : (window.lastGoogleUserEmail || 'saminsarfaraz949@gmail.com');
+        const uName = user ? user.displayName : (window.lastGoogleUserName || 'Samin Samin');
+        const uPhoto = user ? user.photoURL : (window.lastGoogleUserPhotoURL || null);
+
         unauthNavs.forEach(el => el && el.classList.add('d-none'));
         authNavs.forEach(el => el && el.classList.remove('d-none'));
         avatars.forEach(el => {
             if (el) {
-                if (user.photoURL) {
-                    el.innerHTML = `<img src="${user.photoURL}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                if (uPhoto) {
+                    el.innerHTML = `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
                 } else {
-                    const letter = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
+                    const letter = (uEmail ? uEmail.charAt(0) : 'U').toUpperCase();
                     el.innerHTML = letter;
                 }
             }
@@ -2160,15 +2181,15 @@ function updateGoogleNavState() {
         const setStatus = document.getElementById('settingsProfileStatus');
         
         if (setAvatar) {
-            if (user.photoURL) {
-                setAvatar.innerHTML = `<img src="${user.photoURL}" style="width: 100%; height: 100%; object-fit: cover;">`;
+            if (uPhoto) {
+                setAvatar.innerHTML = `<img src="${uPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
             } else {
-                setAvatar.innerHTML = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
+                setAvatar.innerHTML = (uEmail ? uEmail.charAt(0) : 'U').toUpperCase();
             }
         }
-        window.lastGoogleUserName = user.displayName || 'Samin Samin';
-        window.lastGoogleUserEmail = user.email || 'saminsarfaraz949@gmail.com';
-        window.lastGoogleUserPhotoURL = user.photoURL || null;
+        window.lastGoogleUserName = uName || 'Samin Samin';
+        window.lastGoogleUserEmail = uEmail;
+        window.lastGoogleUserPhotoURL = uPhoto;
         
         if (setName) setName.textContent = window.lastGoogleUserName;
         if (setStatus) setStatus.innerHTML = `<span style="background:#34a853; width:12px; height:12px; border-radius:50%; display:inline-block;"></span> Syncing to ${window.lastGoogleUserEmail}`;
@@ -2223,7 +2244,8 @@ window.confirmTurnOffSync = async function() {
     const cb = document.getElementById('removeDataCheckbox');
     if (cb && cb.checked) {
         localStorage.removeItem('chrome_history');
-        localStorage.removeItem('chrome_bookmarks');
+        const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+        localStorage.removeItem(key);
         history = [];
         bookmarks = [];
     }
@@ -2312,6 +2334,7 @@ window.performFirebaseSignIn = async function() {
             console.log('Firebase refused to link account:', createErr.message);
             document.getElementById('loginPasswordInput').value = '';
             window.lastGoogleUserEmail = email; // Keep the email cached
+            window.demoBypassLoggedIn = true;
             // Force the UI back to settings as if logged in perfectly
             navigate('chrome://settings');
             if (window.updateGoogleNavState) {
