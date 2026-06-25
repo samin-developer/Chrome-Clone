@@ -284,6 +284,7 @@ function stringToColor(str) {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAp74oulY50Por7tn4ag3odPu8VctUqbIk",
@@ -296,6 +297,52 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Cloud Sync Helpers
+async function syncDataToCloud() {
+    if (!userEmail || userEmail.endsWith('@local')) return;
+    try {
+        const bmKey = 'chrome_bookmarks_' + userEmail;
+        const scKey = 'chrome_shortcuts_' + userEmail;
+        const localBookmarks = JSON.parse(localStorage.getItem(bmKey)) || [];
+        const localShortcuts = JSON.parse(localStorage.getItem(scKey)) || [];
+        await setDoc(doc(db, "users", userEmail), {
+            bookmarks: localBookmarks,
+            shortcuts: localShortcuts
+        }, { merge: true });
+    } catch (error) {
+        console.error("Cloud Sync Error (Push):", error);
+    }
+}
+
+async function syncDataFromCloud(email) {
+    if (!email || email.endsWith('@local')) return;
+    try {
+        const docSnap = await getDoc(doc(db, "users", email));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const bmKey = 'chrome_bookmarks_' + email;
+            const scKey = 'chrome_shortcuts_' + email;
+            
+            // Override local with cloud if data exists
+            if (data.bookmarks) {
+                localStorage.setItem(bmKey, JSON.stringify(data.bookmarks));
+                loadBookmarks();
+            }
+            if (data.shortcuts) {
+                localStorage.setItem(scKey, JSON.stringify(data.shortcuts));
+                if (window.renderShortcuts) window.renderShortcuts();
+            }
+        } else {
+            // No cloud data yet, push local up
+            await syncDataToCloud();
+        }
+    } catch (error) {
+        console.error("Cloud Sync Error (Pull):", error);
+    }
+}
+
 let navStack = [], fwdStack = [], activeUrl = '';
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/userinfo.email');
@@ -337,6 +384,7 @@ async function switchProfile(email) {
         provider.setCustomParameters({ login_hint: email });
         await signInWithPopup(auth, provider);
         document.getElementById('userMenu').classList.remove('open');
+        syncDataFromCloud(email);
     } catch (error) {
         console.error('Switch failed:', error);
     }
@@ -669,6 +717,7 @@ onAuthStateChanged(auth, (user) => {
             applyAuthUI({ ...user, email: emailToUse, displayName: user.displayName, photoURL: user.photoURL, uid: user.uid });
             loadHistory();
             loadBookmarks();
+            syncDataFromCloud(emailToUse);
         }
     } else {
         if (!userEmail || !userEmail.endsWith('@local')) {
@@ -1756,6 +1805,7 @@ function saveBookmarks() {
     const profileId = (typeof userEmail !== 'undefined' && userEmail && userEmail !== 'null') ? userEmail : 'default';
     const key = 'chrome_bookmarks_' + profileId;
     localStorage.setItem(key, JSON.stringify(bookmarks));
+    syncDataToCloud();
     renderBookmarksBar();
     if (document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
         renderBookmarksManager();
@@ -2643,6 +2693,7 @@ window.saveNewShortcut = function () {
     });
 
     localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+    syncDataToCloud();
     closeAddShortcutModal();
     renderShortcuts();
 };
@@ -2656,6 +2707,7 @@ window.removeShortcut = function (e, idx) {
     let shortcuts = JSON.parse(shortcutsStr);
     shortcuts.splice(idx, 1);
     localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+    syncDataToCloud();
     renderShortcuts();
 };
 
