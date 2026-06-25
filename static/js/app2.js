@@ -988,6 +988,18 @@ function showExternal(url) {
     }
 
     const domain = getDomain(url);
+    
+    // If running in Desktop App (Electron) where security is disabled, load directly in iframe!
+    if (window.isElectron) {
+        if (iframe.getAttribute('data-url') !== url) {
+            iframe.src = url;
+            iframe.setAttribute('data-url', url);
+        }
+        loader.style.display = 'none';
+        setStatus('Loaded directly (Desktop App)');
+        return;
+    }
+
     if (UNPROXYABLE_DOMAINS.some(d => domain.includes(d))) {
         if (iframe.getAttribute('data-url') !== url) {
             iframe.src = `data:text/html;charset=utf-8,<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:%23f1f3f4;color:%235f6368;text-align:center;"><div><h2 style="color:%23202124">Secure Connection Required</h2><p>This complex website (<b>${domain}</b>) cannot be properly rendered inside an iframe.</p><p>It has been safely opened in a new external browser tab.</p></div></body></html>`;

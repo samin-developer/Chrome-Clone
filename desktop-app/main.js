@@ -39,6 +39,10 @@ function createWindow() {
   mainWindow.on('closed', function () {
     mainWindow = null;
   });
+
+  mainWindow.webContents.on('dom-ready', () => {
+    mainWindow.webContents.executeJavaScript('window.isElectron = true;');
+  });
 }
 
 app.whenReady().then(() => {

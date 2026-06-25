@@ -274,13 +274,29 @@ def search_engine():
     # Primary: Fast and Robust DuckDuckGo API (Google-like results, instant speed)
     try:
         from ddgs import DDGS
+        seen_urls = set()
         with DDGS() as ddgs_client:
+            # 1. First fetch Pakistan Regional Results
             for r in ddgs_client.text(query, max_results=60, region='pk-en'):
-                results.append({
-                    'url': r.get('href', ''),
-                    'title': r.get('title', ''),
-                    'snippet': r.get('body', '')
-                })
+                url = r.get('href', '')
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    results.append({
+                        'url': url,
+                        'title': r.get('title', ''),
+                        'snippet': r.get('body', '')
+                    })
+            
+            # 2. Then flood with Global / Worldwide Results
+            for r in ddgs_client.text(query, max_results=100, region='wt-wt'):
+                url = r.get('href', '')
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    results.append({
+                        'url': url,
+                        'title': r.get('title', ''),
+                        'snippet': r.get('body', '')
+                    })
     except Exception as e:
         print("DDGS API Error:", e)
         
