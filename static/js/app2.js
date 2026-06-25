@@ -2588,23 +2588,8 @@ window.renderShortcuts = function () {
             shortcuts = [];
         }
     } else {
-        // Migration: If shortcuts are empty, check if they were accidentally saved under 'default' previously
-        let defaultStr = localStorage.getItem('chrome_shortcuts_default');
-        if (defaultStr && profileId !== 'default') {
-            try {
-                let defaultShortcuts = JSON.parse(defaultStr);
-                if (defaultShortcuts.length > 0) {
-                    shortcuts = defaultShortcuts;
-                } else {
-                    shortcuts = [];
-                }
-            } catch(e) {
-                shortcuts = [];
-            }
-        } else {
-            shortcuts = [];
-        }
-        localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+        // Just return empty array for new profiles as requested by user
+        shortcuts = [];
     }
 
     container.innerHTML = '';
@@ -2676,9 +2661,9 @@ window.saveNewShortcut = function () {
     let shortcutsStr = localStorage.getItem(storageKey);
     let shortcuts = [];
     if (shortcutsStr) {
-        try { shortcuts = JSON.parse(shortcutsStr); } catch (e) { shortcuts = [...defaultShortcuts]; }
+        try { shortcuts = JSON.parse(shortcutsStr); } catch (e) { shortcuts = []; }
     } else {
-        shortcuts = [...defaultShortcuts];
+        shortcuts = [];
     }
 
     let icon = name.charAt(0).toUpperCase();
