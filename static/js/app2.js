@@ -2625,8 +2625,9 @@ window.renderShortcuts = function () {
 
         const scHtml = `
             <div style="position: absolute; top: -6px; right: -6px; padding: 4px; display: none; cursor: pointer; background: var(--theme-bg, #fff); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); width: 24px; height: 24px; align-items: center; justify-content: center; font-size: 16px; color: var(--theme-text, #5f6368); z-index: 10;" class="sc-dots" onclick="removeShortcut(event, ${idx})" title="Remove shortcut">⋮</div>
-            <div class="sc-icon" style="background:var(--theme-hover, #f1f3f4); display:flex; align-items:center; justify-content:center; overflow:hidden;" onclick="navigate('${sc.url}')">
-                <img src="https://www.google.com/s2/favicons?sz=64&domain=${getDomain(sc.url)}" style="width: 24px; height: 24px; border-radius: 4px; object-fit: contain;">
+            <div class="sc-icon" style="background:var(--theme-hover, #f1f3f4); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;" onclick="navigate('${sc.url}')">
+                <div style="position:absolute; color:${sc.iconColor || '#1a73e8'}; ${sc.fontClass || 'font-weight:bold;'} font-size: 24px;">${sc.icon || sc.title.charAt(0).toUpperCase()}</div>
+                <img src="https://icon.horse/icon/${getDomain(sc.url)}" onerror="this.style.display='none'" onload="if(this.width>0) this.style.opacity='1'" style="width: 24px; height: 24px; border-radius: 4px; object-fit: contain; position:absolute; z-index:2; background:var(--theme-hover, #f1f3f4); opacity:0; transition: opacity 0.2s;">
             </div>
             <span style="color:var(--theme-text, #5f6368); font-size:12px; margin-top:8px;" onclick="navigate('${sc.url}')">${sc.title}</span>
         `;
