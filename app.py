@@ -62,10 +62,12 @@ def proxy():
     except Exception as e:
         return str(e), 500
 
+@app.route('/eduboard/', defaults={'subpath': ''}, methods=['GET', 'POST', 'PUT', 'DELETE'])
 @app.route('/eduboard/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def eduboard_proxy(subpath):
     import requests
     url = f"https://eduboard.uit.edu/{subpath}"
+    print(f"PROXYING URL: {url}", flush=True)
     if request.query_string:
         url += '?' + request.query_string.decode('utf-8')
     headers = {k:v for k,v in request.headers if k.lower() not in ['host', 'origin', 'referer', 'content-length']}
@@ -90,15 +92,47 @@ def eduboard_proxy(subpath):
                 value = re.sub(r'(?i);\s*domain=[^;]+', '', value)
                 value = re.sub(r'(?i);\s*samesite=[^;]+', '', value)
                 value = re.sub(r'(?i);\s*secure', '', value)
+                # Ensure path is root so browser sends cookie to our proxy regardless of subpath
+                if re.search(r'(?i);\s*path=', value):
+                    value = re.sub(r'(?i);\s*path=[^;]+', '; path=/', value)
+                else:
+                    value += '; path=/'
             if name.lower() == 'location':
                 if value.startswith('/'):
                     value = '/eduboard' + value
                 elif value.startswith('https://eduboard.uit.edu/'):
                     value = value.replace('https://eduboard.uit.edu/', '/eduboard/')
             resp_headers.append((name, value))
+    content = resp.content
+    content_type = resp.headers.get('Content-Type', '')
+    if 'text/html' in content_type.lower():
+        # Dynamically build base tag path
+        import posixpath
+        base_dir = posixpath.dirname('/eduboard/' + subpath)
+        if not base_dir.endswith('/'):
+            base_dir += '/'
+        base_tag = f'<base href="{base_dir}">'.encode('utf-8')
+        
+        if b'<head>' in content:
+            content = content.replace(b'<head>', b'<head>' + base_tag, 1)
+        elif b'<HEAD>' in content:
+            content = content.replace(b'<HEAD>', b'<HEAD>' + base_tag, 1)
+        else:
+            content = base_tag + content
+            
+        import re
+        content_str = content.decode('utf-8', errors='ignore')
+        content_str = content_str.replace('https://eduboard.uit.edu/', '/eduboard/')
+        content_str = content_str.replace('http://eduboard.uit.edu/', '/eduboard/')
+        content_str = re.sub(r'(href|src|action)=["\']/(?!/|eduboard/)', r'\1="/eduboard/', content_str)
+        content = content_str.encode('utf-8')
             
     from flask import Response
-    return Response(resp.content, resp.status_code, resp_headers)
+    return Response(content, resp.status_code, resp_headers)
+
+@app.errorhandler(404)
+def proxy_missing_assets(e):
+    return eduboard_proxy(request.path.lstrip('/'))
 
 @app.route('/api/image-search')
 def image_search():
@@ -235,53 +269,62 @@ def search_engine():
     query = request.args.get('q')
     if not query:
         return jsonify([])
+    results = []
+    
+    # Primary: Fast and Robust DuckDuckGo API (Google-like results, instant speed)
     try:
-        import urllib.request
-        import urllib.parse
-        import re
-        import html as html_mod
-        
-        url = "https://lite.duckduckgo.com/lite/"
-        data = urllib.parse.urlencode({'q': query}).encode('utf-8')
-        req = urllib.request.Request(url, data=data, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-            'Content-Type': 'application/x-www-form-urlencoded'
-        })
-        with urllib.request.urlopen(req) as resp:
-            html_content = resp.read().decode('utf-8', errors='ignore')
-            
-        results = []
-        links = list(re.finditer(r'<a rel="nofollow" href="([^"]+)" class=\'result-link\'>(.*?)</a>', html_content))
-        snippets = re.findall(r'<td class=\'result-snippet\'>([\s\S]*?)</td>', html_content)
-        
-        for i, match in enumerate(links):
-            url_str = match.group(1)
-            title = re.sub(r'<[^>]+>', '', match.group(2)).strip()
-            title = html_mod.unescape(title)
-            
-            snippet = ""
-            if i < len(snippets):
-                snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip()
-                snippet = html_mod.unescape(snippet)
-                
-            if url_str.startswith('//duckduckgo.com/l/?uddg='):
-                try:
-                    url_str = urllib.parse.unquote(url_str.split('uddg=')[1].split('&')[0])
-                except: pass
-                
-            results.append({
-                'url': url_str,
-                'title': title,
-                'snippet': snippet
-            })
-            
-            if len(results) >= 10:
-                break
-                
-        return jsonify(results)
+        from ddgs import DDGS
+        with DDGS() as ddgs_client:
+            for r in ddgs_client.text(query, max_results=60, region='pk-en'):
+                results.append({
+                    'url': r.get('href', ''),
+                    'title': r.get('title', ''),
+                    'snippet': r.get('body', '')
+                })
     except Exception as e:
-        print("Search API Error:", e)
-        return jsonify([])
+        print("DDGS API Error:", e)
+        
+    # Fallback 1: Google Search (slower, but exact if DDG fails)
+    if not results:
+        try:
+            from googlesearch import search
+            for r in search(query, num_results=20, advanced=True, region='pk'):
+                results.append({
+                    'url': r.url,
+                    'title': r.title,
+                    'snippet': r.description
+                })
+        except Exception as e:
+            print("Google Search API Error:", e)
+            
+    # Final fallback to DuckDuckGo Lite HTML Scraper
+    if not results:
+        try:
+            import urllib.request, urllib.parse, re, html as html_mod
+            url = "https://lite.duckduckgo.com/lite/"
+            data = urllib.parse.urlencode({'q': query, 'kl': 'pk-en'}).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+            with urllib.request.urlopen(req) as resp:
+                html_content = resp.read().decode('utf-8', errors='ignore')
+                
+            links = list(re.finditer(r'<a rel="nofollow" href="([^"]+)" class=\'result-link\'>(.*?)</a>', html_content))
+            snippets = re.findall(r'<td class=\'result-snippet\'>([\s\S]*?)</td>', html_content)
+            
+            for i, match in enumerate(links):
+                url_str = match.group(1)
+                title = html_mod.unescape(re.sub(r'<[^>]+>', '', match.group(2)).strip())
+                snippet = html_mod.unescape(re.sub(r'<[^>]+>', '', snippets[i]).strip()) if i < len(snippets) else ""
+                
+                if url_str.startswith('//duckduckgo.com/l/?uddg='):
+                    try: url_str = urllib.parse.unquote(url_str.split('uddg=')[1].split('&')[0])
+                    except: pass
+                    
+                results.append({'url': url_str, 'title': title, 'snippet': snippet})
+                if len(results) >= 50: break
+        except Exception as e:
+            print("DDG Fallback Error:", e)
+
+    return jsonify(results)
 
 @app.route('/<path:dummy>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def fallback_proxy(dummy):

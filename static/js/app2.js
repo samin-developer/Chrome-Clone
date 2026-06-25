@@ -304,6 +304,9 @@ provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 // ─── AUTH ──────────────────────────────────────────────────────
 async function toggleSignIn() {
     try {
+        if (userEmail && userEmail.endsWith('@local')) {
+            userEmail = null; // Allow onAuthStateChanged to switch to the new Google user
+        }
         provider.setCustomParameters({ prompt: 'select_account' });
         await signInWithPopup(auth, provider);
         setStatus('Signed in');
@@ -320,6 +323,7 @@ async function switchProfile(email) {
             userEmail = p.email;
             localStorage.setItem('active_profile_email', p.email);
             loadBookmarks();
+            if (window.renderShortcuts) window.renderShortcuts();
             applyAuthUI({ email: p.email, displayName: p.name, photoURL: p.customAvatar || p.photoURL });
             applyProfileSettings(p);
             document.getElementById('userMenu').classList.remove('open');
@@ -328,6 +332,7 @@ async function switchProfile(email) {
         }
     }
     try {
+        userEmail = email; // Update memory state before onAuthStateChanged fires
         localStorage.setItem('active_profile_email', email);
         provider.setCustomParameters({ login_hint: email });
         await signInWithPopup(auth, provider);
@@ -948,7 +953,7 @@ function showView(name) {
 
 const tabIframes = {};
 
-const UNPROXYABLE_DOMAINS = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'linkedin.com', 'github.com'];
+const UNPROXYABLE_DOMAINS = ['google.com', 'facebook.com', 'twitter.com', 'instagram.com', 'youtube.com', 'github.com', 'linkedin.com', 'stackoverflow.com'];
 
 function showExternal(url) {
     showView('External');
@@ -972,6 +977,16 @@ function showExternal(url) {
 
     iframe.style.display = 'block';
 
+    let loader = document.getElementById('iframeLoader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'iframeLoader';
+        loader.style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;';
+        loader.innerHTML = '<div class="spinner"></div><div style="margin-top: 16px; color: #5f6368; font-family: sans-serif; font-size: 14px;">Loading page...</div>';
+        document.getElementById('viewExternal').style.position = 'relative';
+        document.getElementById('viewExternal').appendChild(loader);
+    }
+
     const domain = getDomain(url);
     if (UNPROXYABLE_DOMAINS.some(d => domain.includes(d))) {
         if (iframe.getAttribute('data-url') !== url) {
@@ -979,20 +994,26 @@ function showExternal(url) {
             iframe.setAttribute('data-url', url);
             window.open(url, '_blank');
         }
+        loader.style.display = 'none';
         setStatus('Opened in external tab');
         return;
     }
+    
 
     if (domain.includes('eduboard.uit.edu')) {
         let path = new URL(url).pathname + new URL(url).search;
         let finalUrl = '/eduboard' + path;
         if (iframe.getAttribute('data-url') !== url) {
+            loader.style.display = 'flex';
             iframe.src = finalUrl;
             iframe.setAttribute('data-url', url);
             iframe.onload = () => {
+                loader.style.display = 'none';
                 setStatus('Ready');
                 updateTab('🌐', getDomain(url));
             };
+        } else {
+            loader.style.display = 'none';
         }
         return;
     }
@@ -1004,12 +1025,15 @@ function showExternal(url) {
     // Only set src if it changed, to avoid reloading on tab switch
     const finalUrl = isDirect ? url : '/api/proxy?url=' + encodeURIComponent(url);
     if (iframe.getAttribute('data-url') !== url) {
+        loader.style.display = 'flex';
         iframe.src = finalUrl;
         iframe.setAttribute('data-url', url);
         iframe.onload = () => {
+            loader.style.display = 'none';
             setStatus('Ready');
         };
     } else {
+        loader.style.display = 'none';
         setStatus('Ready');
     }
 }
@@ -1020,7 +1044,18 @@ async function showResults(query, target) {
     document.getElementById('knowledgePanel').innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner" style="margin:auto"></div></div>';
     document.querySelector('.results-page').style.maxWidth = '700px';
     document.getElementById('resultList').style.maxWidth = '652px';
-    document.getElementById('resultList').innerHTML = '';
+    document.getElementById('resultList').innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:24px; padding-top: 10px; opacity: 0.6;">
+            ${[1, 2, 3, 4].map(() => `
+                <div>
+                    <div style="width: 160px; height: 14px; background: var(--theme-border, #e8eaed); border-radius: 4px; margin-bottom: 8px;"></div>
+                    <div style="width: 320px; height: 22px; background: var(--theme-border, #e8eaed); border-radius: 4px; margin-bottom: 10px;"></div>
+                    <div style="width: 100%; max-width: 600px; height: 14px; background: var(--theme-border, #e8eaed); border-radius: 4px; margin-bottom: 6px;"></div>
+                    <div style="width: 80%; max-width: 500px; height: 14px; background: var(--theme-border, #e8eaed); border-radius: 4px;"></div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 
     // Sync UI with 'all' tab state
     window.currentSearchTab = 'all';
@@ -1191,24 +1226,7 @@ async function buildCryptoKP() {
 
 async function buildDynamicResults(query) {
     const results = [];
-    const capQuery = query.charAt(0).toUpperCase() + query.slice(1);
-
-    // Always add Official Site
-    const qDomain = query.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
-    if (qDomain !== '.com') {
-        results.push({ d: qDomain, t: `${capQuery} - Official Site`, s: `Welcome to the official website for ${capQuery}. Explore products, services, and the latest information.` });
-    }
-
-    // Add YouTube Search Link (For Dramas, Videos, Music)
-    results.push({ d: `youtube.com/results?search_query=${encodeURIComponent(query)}`, t: `${capQuery} - YouTube Search`, s: `Watch videos, dramas, and music related to ${capQuery} on YouTube.` });
-
-    // Add Social Media Links
-    const socialQuery = query.toLowerCase().replace(/[^a-z0-9_]/g, '');
-    if (socialQuery) {
-        results.push({ d: `instagram.com/${socialQuery}`, t: `${capQuery} (@${socialQuery}) • Instagram`, s: `See photos and videos from ${capQuery} on Instagram.` });
-        results.push({ d: `twitter.com/${socialQuery}`, t: `${capQuery} (@${socialQuery}) | Twitter`, s: `The latest Tweets from ${capQuery}.` });
-        results.push({ d: `facebook.com/${socialQuery}`, t: `${capQuery} - Home | Facebook`, s: `Connect with ${capQuery} on Facebook.` });
-    }
+    // Removed fabricated dummy results so only authentic API links appear.
 
     try {
         const r = await fetch('/api/search?q=' + encodeURIComponent(query));
@@ -1224,13 +1242,66 @@ async function buildDynamicResults(query) {
         console.error("Search engine API failed:", e);
     }
 
-    document.getElementById('resultList').innerHTML = results.map(r => `
-        <div class="result-item">
-            <div class="result-domain">${r.d.split('/')[0]}</div>
-            <div class="result-title" onclick="navigate('${r.d}')">${r.t}</div>
-            <div class="result-snip">${r.s}</div>
+    window.currentSearchResults = results;
+    window.currentSearchPage = 1;
+    window.renderSearchResults();
+}
+
+window.renderSearchResults = function() {
+    const results = window.currentSearchResults || [];
+    const page = window.currentSearchPage || 1;
+    const perPage = 10;
+    const startIdx = (page - 1) * perPage;
+    const pageResults = results.slice(startIdx, startIdx + perPage);
+
+    let html = pageResults.map(r => {
+        let cleanUrl = r.d.startsWith('http') ? r.d : 'https://' + r.d;
+        let dmn = getDomain(cleanUrl);
+        
+        return `
+        <div class="result-item" style="margin-bottom: 28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px; cursor:pointer;" onclick="navigate('${cleanUrl}')">
+                <div style="width: 28px; height: 28px; background: var(--theme-bg, #f1f3f4); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--theme-border, #dfe1e5);">
+                    <img src="https://www.google.com/s2/favicons?sz=64&domain=${dmn}" style="width: 16px; height: 16px; object-fit: contain;">
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 14px; color: var(--theme-text, #202124); line-height: 1.2;">${dmn}</span>
+                    <span style="font-size: 12px; color: var(--theme-text, #5f6368); line-height: 1.2;">${cleanUrl}</span>
+                </div>
+            </div>
+            <div class="result-title" style="margin-bottom: 4px; font-size: 20px;" onclick="navigate('${cleanUrl}')">${r.t}</div>
+            <div class="result-snip" style="line-height: 1.58;">${r.s}</div>
         </div>
-    `).join('');
+        `;
+    }).join('');
+
+    const totalPages = Math.ceil(results.length / perPage);
+    if (totalPages > 1) {
+        html += '<div style="display:flex; justify-content:center; gap:8px; margin-top:40px; margin-bottom:40px; align-items:center;">';
+        
+        if (page > 1) {
+            html += `<span style="cursor:pointer; color:#1a0dab; font-size:14px; margin-right:16px;" onclick="window.currentSearchPage=${page-1}; window.renderSearchResults(); document.querySelector('.results-page').scrollIntoView();">Previous</span>`;
+        }
+
+        for(let i=1; i<=totalPages; i++) {
+            let fw = i === page ? 'bold' : 'normal';
+            let col = i === page ? 'var(--theme-text, #202124)' : '#1a0dab';
+            let td = i === page ? 'none' : 'underline';
+            let cur = i === page ? 'default' : 'pointer';
+            
+            html += `<span style="cursor:${cur}; color:${col}; font-weight:${fw}; text-decoration:${td}; font-size:14px; padding:4px 8px;" onclick="if(${i}!==${page}) { window.currentSearchPage=${i}; window.renderSearchResults(); document.querySelector('.results-page').scrollIntoView(); }">
+                ${i}
+            </span>`;
+        }
+        
+        if (page < totalPages) {
+            html += `<span style="cursor:pointer; color:#1a0dab; font-size:14px; margin-left:16px;" onclick="window.currentSearchPage=${page+1}; window.renderSearchResults(); document.querySelector('.results-page').scrollIntoView();">Next</span>`;
+        }
+        
+        html += '</div>';
+    }
+
+    document.getElementById('resultList').innerHTML = html;
 }
 
 // ─── WIDGETS ──────────────────────────────────────────────────
@@ -1503,6 +1574,7 @@ setInterval(checkSession, 30000);
 function init() {
     userEmail = localStorage.getItem('active_profile_email');
     loadBookmarks();
+    if (window.renderShortcuts) window.renderShortcuts();
 
     if (isGuest) {
         const btn = document.getElementById('avatarBtn');
@@ -1659,7 +1731,8 @@ let bookmarks = [];
 let currentBookmarkTab = 'Bookmarks bar';
 
 function loadBookmarks() {
-    const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+    const profileId = (typeof userEmail !== 'undefined' && userEmail && userEmail !== 'null') ? userEmail : 'default';
+    const key = 'chrome_bookmarks_' + profileId;
     bookmarks = JSON.parse(localStorage.getItem(key)) || [];
     renderBookmarksBar();
     if (document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
@@ -1668,7 +1741,8 @@ function loadBookmarks() {
 }
 
 function saveBookmarks() {
-    const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+    const profileId = (typeof userEmail !== 'undefined' && userEmail && userEmail !== 'null') ? userEmail : 'default';
+    const key = 'chrome_bookmarks_' + profileId;
     localStorage.setItem(key, JSON.stringify(bookmarks));
     renderBookmarksBar();
     if (document.getElementById('viewBookmarks') && !document.getElementById('viewBookmarks').classList.contains('d-none')) {
@@ -1976,7 +2050,7 @@ window.switchSearchTab = function (tabName, overrideQuery = null) {
         // Image Search
         resultsPage.style.maxWidth = '100%';
         resultList.style.maxWidth = '100%';
-        resultList.innerHTML = '<div style="padding: 20px;">Searching images for <b>' + query + '</b>...</div>';
+        resultList.innerHTML = '<div style="padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--theme-text, #5f6368);"><div class="spinner" style="margin-bottom: 16px;"></div>Searching images for <b>' + query + '</b>...</div>';
 
         fetch('/api/image-search?q=' + encodeURIComponent(query))
             .then(res => res.json())
@@ -2006,7 +2080,7 @@ window.switchSearchTab = function (tabName, overrideQuery = null) {
         // News Search
         resultsPage.style.maxWidth = '700px';
         resultList.style.maxWidth = '652px';
-        resultList.innerHTML = '<div style="padding: 20px;">Fetching latest news for <b>' + query + '</b>...</div>';
+        resultList.innerHTML = '<div style="padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--theme-text, #5f6368);"><div class="spinner" style="margin-bottom: 16px;"></div>Fetching latest news for <b>' + query + '</b>...</div>';
 
         fetch('/api/news?q=' + encodeURIComponent(query))
             .then(res => res.json())
@@ -2032,7 +2106,7 @@ window.switchSearchTab = function (tabName, overrideQuery = null) {
         // Video Search
         resultsPage.style.maxWidth = '700px';
         resultList.style.maxWidth = '652px';
-        resultList.innerHTML = '<div style="padding: 20px;">Searching videos for <b>' + query + '</b>...</div>';
+        resultList.innerHTML = '<div style="padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--theme-text, #5f6368);"><div class="spinner" style="margin-bottom: 16px;"></div>Searching videos for <b>' + query + '</b>...</div>';
 
         fetch('/api/video?q=' + encodeURIComponent(query))
             .then(res => res.json())
@@ -2060,31 +2134,115 @@ window.switchSearchTab = function (tabName, overrideQuery = null) {
 
     } else if (tabName === 'ai') {
         // AI Mode Search
-        resultsPage.style.maxWidth = '700px';
-        resultList.style.maxWidth = '652px';
-        resultList.innerHTML = `
-            <div style="padding: 24px; border: 1px solid #c2e7ff; border-radius: 24px; background: linear-gradient(180deg, #f0f4f9 0%, #fff 100%); margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                    <span style="font-size: 20px;">✨</span>
-                    <span style="font-size: 16px; font-weight: 500; color: #202124;">AI Overview</span>
-                </div>
-                <div class="spinner" style="margin: 0;"></div>
-            </div>`;
+        resultsPage.style.maxWidth = '1000px';
+        resultList.style.maxWidth = '100%';
 
-        fetch('/api/ai?q=' + encodeURIComponent(query))
-            .then(res => res.json())
-            .then(data => {
-                resultList.innerHTML = `
-                    <div style="padding: 24px; border: 1px solid #c2e7ff; border-radius: 24px; background: linear-gradient(180deg, #f0f4f9 0%, #fff 100%); margin-bottom: 20px; position: relative;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                            <span style="font-size: 20px;">✨</span>
-                            <span style="font-size: 16px; font-weight: 500; color: #202124;">AI Overview</span>
-                        </div>
-                        <div style="font-size: 14px; line-height: 1.6; color: #202124; white-space: pre-wrap; font-family: arial, sans-serif;">${data.text || 'I could not generate an answer.'}</div>
-                    </div>`;
-            }).catch(err => {
-                resultList.innerHTML = '<div style="padding: 20px; color: red;">Failed to fetch AI response</div>';
-            });
+        const aiContainer = document.createElement('div');
+        aiContainer.style = "padding: 24px; border: 1px solid #c2e7ff; border-radius: 24px; background: linear-gradient(180deg, #f0f4f9 0%, #fff 100%); margin-bottom: 20px; display: flex; flex-direction: column;";
+
+        aiContainer.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-shrink: 0;">
+                <span style="font-size: 20px;">✨</span>
+                <span style="font-size: 16px; font-weight: 500; color: #202124;">AI Assistant</span>
+            </div>
+            <div id="aiChatArea" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="align-self: flex-end; background: #e8eaed; padding: 10px 14px; border-radius: 16px 16px 0 16px; font-size: 14px; color: #202124; max-width: 80%;">
+                        ${query}
+                    </div>
+                    <div id="aiInitialLoading" style="align-self: flex-start; padding: 10px 14px; border-radius: 16px 16px 16px 0; font-size: 14px; color: #202124; display: flex; align-items: center; gap: 8px;">
+                        <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                        Thinking...
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0; position: relative;">
+                <input type="text" id="aiChatInput" placeholder="Ask a follow-up..." style="flex: 1; padding: 12px 16px; border-radius: 24px; border: 1px solid #dfe1e5; font-size: 14px; outline: none;">
+                <button id="aiChatBtn" style="background: #1a73e8; border: none; border-radius: 50%; width: 42px; height: 42px; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    ➤
+                </button>
+            </div>
+        `;
+
+        resultList.innerHTML = '';
+        resultList.appendChild(aiContainer);
+
+        const chatArea = document.getElementById('aiChatArea');
+        const chatInput = document.getElementById('aiChatInput');
+        const chatBtn = document.getElementById('aiChatBtn');
+
+        const appendMsg = (text, isUser) => {
+            const div = document.createElement('div');
+            if (isUser) {
+                div.style = "align-self: flex-end; background: #e8eaed; padding: 10px 14px; border-radius: 16px 16px 0 16px; font-size: 14px; color: #202124; max-width: 80%;";
+                div.textContent = text;
+            } else {
+                div.style = "align-self: flex-start; background: #f1f3f4; padding: 10px 14px; border-radius: 16px 16px 16px 0; font-size: 14px; color: #202124; max-width: 80%; white-space: normal; font-family: arial, sans-serif; line-height: 1.5; overflow-x: auto;";
+                if (typeof marked !== 'undefined') {
+                    div.innerHTML = marked.parse(text);
+                } else {
+                    let formatted = text
+                        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                        .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                        .replace(/\\n/g, '<br>')
+                        .replace(/\n/g, '<br>');
+                    div.innerHTML = formatted;
+                }
+
+                // Add some basic styling for markdown tables if present
+                div.querySelectorAll('table').forEach(t => {
+                    t.style.borderCollapse = 'collapse';
+                    t.style.marginTop = '10px';
+                    t.style.marginBottom = '10px';
+                    t.style.width = '100%';
+                });
+                div.querySelectorAll('th, td').forEach(c => {
+                    c.style.border = '1px solid #dfe1e5';
+                    c.style.padding = '6px 12px';
+                });
+                div.querySelectorAll('th').forEach(h => {
+                    h.style.background = '#e8eaed';
+                });
+            }
+            chatArea.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            return div;
+        };
+
+        const fetchAI = (q, loadDiv) => {
+            fetch('/api/ai?q=' + encodeURIComponent(q))
+                .then(res => res.json())
+                .then(data => {
+                    if (loadDiv) loadDiv.remove();
+                    appendMsg(data.text || 'I could not generate an answer.', false);
+                }).catch(err => {
+                    if (loadDiv) loadDiv.remove();
+                    appendMsg('Failed to fetch AI response.', false);
+                });
+        };
+
+        fetchAI(query, document.getElementById('aiInitialLoading'));
+
+        const handleSend = () => {
+            const val = chatInput.value.trim();
+            if (!val) return;
+            chatInput.value = '';
+            appendMsg(val, true);
+
+            const loadDiv = document.createElement('div');
+            loadDiv.style = "align-self: flex-start; padding: 10px 14px; border-radius: 16px 16px 16px 0; font-size: 14px; color: #202124; display: flex; align-items: center; gap: 8px;";
+            loadDiv.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>Thinking...';
+            chatArea.appendChild(loadDiv);
+            loadDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+            let conv = "Previous topic: " + query + ". User follow up: " + val;
+            fetchAI(conv, loadDiv);
+        };
+
+        chatBtn.onclick = handleSend;
+        chatInput.onkeypress = (e) => {
+            if (e.key === 'Enter') handleSend();
+        };
     }
 };
 
@@ -2239,7 +2397,8 @@ window.confirmTurnOffSync = async function () {
     const cb = document.getElementById('removeDataCheckbox');
     if (cb && cb.checked) {
         localStorage.removeItem('chrome_history');
-        const key = userEmail ? 'chrome_bookmarks_' + userEmail : 'chrome_bookmarks';
+        const profileIdSync = (typeof userEmail !== 'undefined' && userEmail && userEmail !== 'null') ? userEmail : 'default';
+    const key = 'chrome_bookmarks_' + profileIdSync;
         localStorage.removeItem(key);
         history = [];
         bookmarks = [];
@@ -2340,9 +2499,168 @@ window.performFirebaseSignIn = async function () {
     }
 };
 
+// ─── SHORTCUTS ────────────────────────────────────────────────
+const defaultShortcuts = [
+    { title: 'YouTube', url: 'youtube.com', icon: '▶', iconColor: '#ff0000', fontClass: '' },
+    { title: 'university work', url: 'drive.google.com', icon: '📁', iconColor: '#1a73e8', fontClass: '' },
+    { title: 'Thermodynami...', url: 'thermodynamics.com', icon: 'O', iconColor: '#7b1fa2', fontClass: 'font-weight:bold;' },
+    { title: 'Spotify - Search', url: 'spotify.com', icon: 'S', iconColor: '#1db954', fontClass: 'font-weight:bold;' },
+    { title: 'School Bridge', url: 'schoolbridge.com', icon: 'B', iconColor: '#c2185b', fontClass: 'font-weight:bold;' },
+    { title: 'Sign in', url: 'google.com', icon: 'G', iconColor: '#202124', fontClass: '' },
+    { title: 'https://eduboar...', url: 'eduboard.com', icon: 'eDu', iconColor: '#f29900', fontClass: 'font-size:14px; font-weight:bold;' }
+];
+
+window.renderShortcuts = function () {
+    const container = document.getElementById('ntShortcutsContainer');
+    if (!container) return;
+
+    let profileId = (typeof userEmail !== 'undefined' && userEmail) ? userEmail : (window.lastGoogleUserEmail || 'default');
+    let storageKey = 'chrome_shortcuts_' + profileId;
+    let shortcutsStr = localStorage.getItem(storageKey);
+    let shortcuts = [];
+
+    if (shortcutsStr) {
+        try {
+            shortcuts = JSON.parse(shortcutsStr);
+        } catch (e) {
+            shortcuts = [];
+        }
+    } else {
+        // Migration: If shortcuts are empty, check if they were accidentally saved under 'default' previously
+        let defaultStr = localStorage.getItem('chrome_shortcuts_default');
+        if (defaultStr && profileId !== 'default') {
+            try {
+                let defaultShortcuts = JSON.parse(defaultStr);
+                if (defaultShortcuts.length > 0) {
+                    shortcuts = defaultShortcuts;
+                } else {
+                    shortcuts = [];
+                }
+            } catch(e) {
+                shortcuts = [];
+            }
+        } else {
+            shortcuts = [];
+        }
+        localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+    }
+
+    container.innerHTML = '';
+
+    shortcuts.forEach((sc, idx) => {
+        const scDiv = document.createElement('div');
+        scDiv.className = 'shortcut';
+        scDiv.style.position = 'relative';
+
+        scDiv.onmouseover = () => {
+            let dots = scDiv.querySelector('.sc-dots');
+            if (dots) dots.style.display = 'flex';
+        };
+        scDiv.onmouseout = () => {
+            let dots = scDiv.querySelector('.sc-dots');
+            if (dots) dots.style.display = 'none';
+        };
+
+        const scHtml = `
+            <div style="position: absolute; top: -6px; right: -6px; padding: 4px; display: none; cursor: pointer; background: var(--theme-bg, #fff); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); width: 24px; height: 24px; align-items: center; justify-content: center; font-size: 16px; color: var(--theme-text, #5f6368); z-index: 10;" class="sc-dots" onclick="removeShortcut(event, ${idx})" title="Remove shortcut">⋮</div>
+            <div class="sc-icon" style="background:var(--theme-hover, #f1f3f4); display:flex; align-items:center; justify-content:center; overflow:hidden;" onclick="navigate('${sc.url}')">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=${getDomain(sc.url)}" style="width: 24px; height: 24px; border-radius: 4px; object-fit: contain;">
+            </div>
+            <span style="color:var(--theme-text, #5f6368); font-size:12px; margin-top:8px;" onclick="navigate('${sc.url}')">${sc.title}</span>
+        `;
+        scDiv.innerHTML = scHtml;
+        container.appendChild(scDiv);
+    });
+
+    // Add shortcut button
+    const addDiv = document.createElement('div');
+    addDiv.className = 'shortcut';
+    addDiv.onclick = openAddShortcutModal;
+    addDiv.innerHTML = `
+        <div class="sc-icon" style="background:var(--theme-bg, #f1f3f4); color:var(--theme-text, #5f6368); font-size:24px;">+</div>
+        <span style="color:var(--theme-text, #5f6368); font-size:12px; margin-top:8px;">Add shortcut</span>
+    `;
+    container.appendChild(addDiv);
+};
+
+window.openAddShortcutModal = function () {
+    const modal = document.getElementById('addShortcutModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        document.getElementById('shortcutNameInput').value = '';
+        document.getElementById('shortcutUrlInput').value = '';
+        document.getElementById('shortcutNameInput').focus();
+    }
+};
+
+window.closeAddShortcutModal = function () {
+    const modal = document.getElementById('addShortcutModal');
+    if (modal) modal.classList.add('d-none');
+};
+
+window.saveNewShortcut = function () {
+    const name = document.getElementById('shortcutNameInput').value.trim();
+    let url = document.getElementById('shortcutUrlInput').value.trim();
+    if (!name || !url) return;
+
+    // basic url formatting
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+
+    let profileId = (typeof userEmail !== 'undefined' && userEmail) ? userEmail : (window.lastGoogleUserEmail || 'default');
+    let storageKey = 'chrome_shortcuts_' + profileId;
+    let shortcutsStr = localStorage.getItem(storageKey);
+    let shortcuts = [];
+    if (shortcutsStr) {
+        try { shortcuts = JSON.parse(shortcutsStr); } catch (e) { shortcuts = [...defaultShortcuts]; }
+    } else {
+        shortcuts = [...defaultShortcuts];
+    }
+
+    let icon = name.charAt(0).toUpperCase();
+    let colors = ['#1a73e8', '#ea4335', '#fbbc04', '#34a853', '#7b1fa2'];
+    let iconColor = colors[Math.floor(Math.random() * colors.length)];
+
+    shortcuts.push({
+        title: name.length > 15 ? name.substring(0, 12) + '...' : name,
+        url: url,
+        icon: icon,
+        iconColor: iconColor,
+        fontClass: 'font-weight:bold;'
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+    closeAddShortcutModal();
+    renderShortcuts();
+};
+
+window.removeShortcut = function (e, idx) {
+    e.stopPropagation();
+    let profileId = (typeof userEmail !== 'undefined' && userEmail) ? userEmail : (window.lastGoogleUserEmail || 'default');
+    let storageKey = 'chrome_shortcuts_' + profileId;
+    let shortcutsStr = localStorage.getItem(storageKey);
+    if (!shortcutsStr) return;
+    let shortcuts = JSON.parse(shortcutsStr);
+    shortcuts.splice(idx, 1);
+    localStorage.setItem(storageKey, JSON.stringify(shortcuts));
+    renderShortcuts();
+};
+
+// Hook into updateGoogleNavState to re-render when user logs in/out
+const originalUpdateGoogleNavState = window.updateGoogleNavState;
+window.updateGoogleNavState = function () {
+    if (originalUpdateGoogleNavState) originalUpdateGoogleNavState();
+    window.renderShortcuts();
+};
+
 // ─── RUN ──────────────────────────────────────────────────────
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof init === 'function') init();
+        renderShortcuts();
+    });
 } else {
-    init();
+    if (typeof init === 'function') init();
+    renderShortcuts();
 }

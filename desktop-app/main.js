@@ -8,7 +8,8 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      webSecurity: false
     },
     autoHideMenuBar: true
   });
@@ -25,7 +26,8 @@ function createWindow() {
         autoHideMenuBar: true,
         webPreferences: {
           nodeIntegration: false,
-          contextIsolation: true
+          contextIsolation: true,
+          webSecurity: false
         }
       }
     };
